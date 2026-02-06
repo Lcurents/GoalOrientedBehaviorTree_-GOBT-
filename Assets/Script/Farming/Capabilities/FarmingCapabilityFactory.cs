@@ -44,10 +44,6 @@ namespace FarmingGoap.Capabilities
                 .AddCondition<CropGrowthStage>(Comparison.GreaterThanOrEqual, 1)
                 .SetBaseCost(3);
 
-            // GOAL: IdleGoal - Priority 6 (Lowest) - Fallback
-            builder.AddGoal<IdleGoal>()
-                .SetBaseCost(10); // Cost tinggi, hanya dipilih kalau tidak ada goal lain
-
             // ========== ACTIONS - REDESIGNED ==========
 
             // ACTION: GetSeedAction
@@ -114,12 +110,6 @@ namespace FarmingGoap.Capabilities
                 .SetTarget<BedTarget>()
                 .SetBaseCost(1)
                 .SetInRange(1f);
-
-            // ACTION: WanderAction
-            builder.AddAction<WanderAction>()
-                .SetTarget<RandomWanderTargetKey>()
-                .SetBaseCost(1)
-                .SetInRange(0.5f); // Jarak dekat untuk wander
 
             // ========== SENSORS - World ==========
             builder.AddWorldSensor<HungerLevelSensor>()

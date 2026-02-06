@@ -21,32 +21,30 @@ Root (Selector) [sudah ada]
 ├─ Survival (Sequence) [ADD]
 │  ├─ SurvivalConditional [ADD]
 │  └─ SelectSurvivalGoal [ADD]
-└─ Farming (Sequence) [ADD]
-   ├─ FarmingConditional [ADD]
-   └─ SelectFarmingGoal [ADD]
+├─ Farming (Sequence) [ADD]
+│  ├─ FarmingConditional [ADD]
+│  └─ SelectFarmingGoal [ADD]
+└─ Idle (Action) [ADD] ← FALLBACK
+   └─ SelectIdleGoal [ADD]
 ```
 
 **Cara ADD:**
 1. **Klik Root** → Add Child → Composites → **Sequence** → Rename "Survival"
 2. **Klik Root** → Add Child → Composites → **Sequence** → Rename "Farming"
-3. **Klik Survival** → Add Child → GOAP → Survival → **SurvivalConditional**
-4. **Klik Survival** → Add Child → GOAP → Survival → **SelectSurvivalGoal**
-5. **Klik Farming** → Add Child → GOAP → Farming → **FarmingConditional**
-6. **Klik Farming** → Add Child → GOAP → Farming → **SelectFarmingGoal**
+3. **Klik Root** → Add Child → GOAP → Idle → **SelectIdleGoal** (langsung action, BUKAN sequence)
+4. **Klik Survival** → Add Child → GOAP → Survival → **SurvivalConditional**
+5. **Klik Survival** → Add Child → GOAP → Survival → **SelectSurvivalGoal**
+6. **Klik Farming** → Add Child → GOAP → Farming → **FarmingConditional**
+7. **Klik Farming** → Add Child → GOAP → Farming → **SelectFarmingGoal**
 
 ### 4️⃣ Configure Parameters (PENTING!)
-
-**Untuk SEMUA 4 tasks:**
-1. Klik task di tree → Lihat Inspector
-2. Cari field **`agentObject`**
-3. Klik dropdown → Pilih **GameObject**
-4. ✅ Enable **"Use Self"**
 
 **SurvivalConditional:**
 - hungerThreshold: 70
 - energyThreshold: 30
 
 **SelectSurvivalGoal:**
+- enableDebugLog: True (untuk development, False untuk production)
 - eatThreshold: 70
 - sleepThreshold: 30
 
@@ -54,7 +52,10 @@ Root (Selector) [sudah ada]
 - alwaysAllow: True (sudah default)
 
 **SelectFarmingGoal:**
-- (tidak ada parameter tambahan)
+- enableDebugLog: True (untuk development, False untuk production)
+
+**SelectIdleGoal:**
+- enableDebugLog: False (default, idle tidak perlu log)
 
 ### 5️⃣ Attach ke Agent GameObject
 
@@ -105,24 +106,47 @@ Atau:
 
 ## 🎯 Decision Logic
 
-### Survival Priority (Left Branch)
+### Survival Priority (Branch 1 - Highest)
 ```
 IF Hunger > 70 OR Energy < 30:
     IF Hunger > 70 AND FoodCount > 0:
         → EatGoal (Priority 1)
     ELSE IF Energy < 30:
         → SleepGoal (Priority 2)
+    → Selector: SUCCESS
+ELSE:
+    → Selector: FAILURE (try next branch)
 ```
 
-### Farming Utility (Right Branch)
+### Farming Utility (Branch 2 - Middle)
 ```
-IF Survival Safe:
+IF Survival Safe (Branch 1 failed):
     Calculate utilities:
         Planting   = 0.4 - cost (if crop stage = 0)
         Watering   = 0.3 - cost (if crop stage = 1-2)
         Harvesting = 0.8 - cost (if crop stage = 3)
     
-    → Pick MAX utility goal
+    IF max utility > -999:
+        → Pick MAX utility goal
+        → Selector: SUCCESS
+    ELSE:
+        → Selector: FAILURE (try next branch)
+```
+
+### Idle Fallback (Branch 3 - Lowest)
+```
+IF Survival Safe AND Farming Disabled:
+    → Pure idle (no GOAP goal)
+    → Agent resting/waiting
+    → Selector: SUCCESS (always)
+```
+
+**Execution Flow:**
+```
+Root (Selector) - try left to right until SUCCESS
+├─ Survival? → YES → STOP ✅
+├─ Farming?  → YES → STOP ✅
+└─ Idle      → ALWAYS SUCCESS ✅ (fallback)
 ```
 
 ---

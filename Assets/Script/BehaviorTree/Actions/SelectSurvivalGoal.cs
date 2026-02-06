@@ -69,13 +69,10 @@ namespace FarmingGoap.BehaviorTree
                 return TaskStatus.Success;
             }
             
-            // Tidak ada goal yang cocok (seharusnya tidak terjadi karena conditional sudah cek)
-            if (lastSelectedGoal != "None")
-            {
-                UnityEngine.Debug.LogWarning("[BT] Survival Planner: Tidak ada goal yang cocok!");
-                lastSelectedGoal = "None";
-            }
-            return TaskStatus.Failure;
+            // Tidak ada goal survival yang cocok
+            // (Edge case: Hunger > 70 tapi FoodCount = 0, atau kondisi lain)
+            // Return Success agar Selector lanjut ke Farming branch
+            return TaskStatus.Success;
         }
     }
 }

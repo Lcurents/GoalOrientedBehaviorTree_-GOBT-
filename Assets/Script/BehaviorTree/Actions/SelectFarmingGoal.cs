@@ -110,15 +110,9 @@ namespace FarmingGoap.BehaviorTree
                 }
             }
             
-            // Semua goal disabled (-999), fallback ke IdleGoal
-            actionProvider.RequestGoal<IdleGoal>();
-            if (lastSelectedGoal != "IdleGoal")
-            {
-                if (enableDebugLog.Value)
-                    UnityEngine.Debug.Log("[BT] Farming Planner: IdleGoal selected (fallback)");
-                lastSelectedGoal = "IdleGoal";
-            }
-            return TaskStatus.Success;
+            // Semua goal disabled (-999), return Failure
+            // Selector akan coba branch berikutnya (Idle)
+            return TaskStatus.Failure;
         }
         
         private CropBehaviour FindNearestCrop()
