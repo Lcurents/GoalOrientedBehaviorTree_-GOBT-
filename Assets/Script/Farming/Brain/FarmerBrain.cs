@@ -8,6 +8,10 @@ namespace FarmingGoap.Brain
 {
     public class FarmerBrain : MonoBehaviour
     {
+        [Header("Goal Selection Mode")]
+        [Tooltip("TRUE = Use FarmerBrain code-based selection | FALSE = Use Behavior Tree")]
+        [SerializeField] private bool useCodeBasedSelection = true;
+        
         private AgentBehaviour agent;
         private GoapActionProvider provider;
         private GoapBehaviour goap;
@@ -36,12 +40,19 @@ namespace FarmingGoap.Brain
 
         private void Start()
         {
-            // Set initial goal
-            SelectGoal();
+            // Set initial goal (hanya jika code-based enabled)
+            if (useCodeBasedSelection)
+            {
+                SelectGoal();
+            }
         }
 
         private void Update()
         {
+            // Hanya jalankan SelectGoal jika tidak pakai Behavior Tree
+            if (!useCodeBasedSelection)
+                return;
+            
             // Re-evaluate goal setiap 1 detik
             if (Time.frameCount % 60 == 0)
             {

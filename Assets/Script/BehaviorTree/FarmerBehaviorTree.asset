@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b23f08d2ae4cba14087c1ed36193d82b, type: 3}
+  m_Name: FarmerBehaviorTree
+  m_EditorClassIdentifier: 
+  mBehaviorSource:
+    behaviorName: FarmerBehaviorTree
+    behaviorDescription: 
+    mTaskData:
+      types: []
+      parentIndex: 
+      startIndex: 
+      variableStartIndex: 
+      JSONSerialization: '{"EntryTask":{"Type":"BehaviorDesigner.Runtime.Tasks.EntryTask","NodeData":{"Offset":"(280,71)"},"ID":0,"Name":"Entry","Instant":true},"RootTask":{"Type":"BehaviorDesigner.Runtime.Tasks.Selector","NodeData":{"Offset":"(0,123.793182)"},"ID":1,"Name":"Selector","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(-186.673843,129.609192)"},"ID":2,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"FarmingGoap.BehaviorTree.SurvivalConditional","NodeData":{"Offset":"(-109.478935,136.59549)"},"ID":3,"Name":"Survival
+        Conditional","Instant":true,"SharedFloathungerThreshold":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":70},"SharedFloatenergyThreshold":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":30}},{"Type":"FarmingGoap.BehaviorTree.SelectSurvivalGoal","NodeData":{"Offset":"(68.64598,130.29155)"},"ID":4,"Name":"Select
+        Survival Goal","Instant":true,"SharedFloateatThreshold":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":70},"SharedFloatsleepThreshold":{"Type":"BehaviorDesigner.Runtime.SharedFloat","Name":null,"SinglemValue":30}}]},{"Type":"BehaviorDesigner.Runtime.Tasks.Sequence","NodeData":{"Offset":"(167.492783,103.567551)"},"ID":5,"Name":"Sequence","Instant":true,"AbortTypeabortType":"None","Children":[{"Type":"FarmingGoap.BehaviorTree.FarmingConditional","NodeData":{"Offset":"(-97.6040955,151.907928)"},"ID":6,"Name":"Farming
+        Conditional","Instant":true,"SharedBoolalwaysAllow":{"Type":"BehaviorDesigner.Runtime.SharedBool","Name":null,"BooleanmValue":true}},{"Type":"FarmingGoap.BehaviorTree.SelectFarmingGoal","NodeData":{"Offset":"(97.70825,150.345474)"},"ID":7,"Name":"Select
+        Farming Goal","Instant":true}]}]}}'
+      fieldSerializationData:
+        typeName: []
+        fieldNameHash: 
+        startIndex: 
+        dataPosition: 
+        unityObjects: []
+        byteData: 
+        byteDataArray: 
+      Version: 1.7.12
