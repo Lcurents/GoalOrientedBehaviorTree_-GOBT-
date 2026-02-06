@@ -3,6 +3,7 @@ using CrashKonijn.Agent.Runtime;
 using CrashKonijn.Goap.Core;
 using CrashKonijn.Goap.Runtime;
 using FarmingGoap.Behaviours;
+using FarmingGoap.Managers;
 using UnityEngine;
 
 namespace FarmingGoap.Actions
@@ -21,8 +22,9 @@ namespace FarmingGoap.Actions
         public override void Start(IMonoAgent agent, Data data)
         {
             data.Timer = 5f; // Slow without shovel
+            data.Agent = agent.gameObject; // Store agent reference
 
-            // Find crop
+            // Find crop at target position
             var targetPos = data.Target.Position;
             var nearbyColliders = Physics2D.OverlapCircleAll(targetPos, 1f);
             
@@ -31,9 +33,24 @@ namespace FarmingGoap.Actions
                 var crop = col.GetComponent<CropBehaviour>();
                 if (crop != null)
                 {
-                    data.Crop = crop;
-                    break;
+                    // CRITICAL: Verify this crop is reserved by THIS agent
+                    var reservedAgent = CropManager.Instance?.GetReservedAgent(crop);
+                    if (reservedAgent == agent.gameObject)
+                    {
+                        data.Crop = crop;
+                        UnityEngine.Debug.Log($"[PlantSlow] {agent.gameObject.name} verified reserved crop: {crop.name}");
+                        break;
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogWarning($"[PlantSlow] {agent.gameObject.name} found {crop.name} but it's reserved by {reservedAgent?.name ?? "NONE"}! Ignoring.");
+                    }
                 }
+            }
+            
+            if (data.Crop == null)
+            {
+                UnityEngine.Debug.LogError($"[PlantSlow] {agent.gameObject.name} couldn't find their reserved crop at target position!");
             }
         }
 
@@ -57,6 +74,7 @@ namespace FarmingGoap.Actions
                     UnityEngine.Debug.Log($"[PlantSeedSlow] Tanam tanpa sekop (5s)! Seed={stats.HasSeed}");
                 }
 
+                data.ActionCompleted = true; // Mark as successfully completed
                 return ActionRunState.Completed;
             }
 
@@ -65,6 +83,21 @@ namespace FarmingGoap.Actions
 
         public override void End(IMonoAgent agent, Data data)
         {
+            // Keep reservation for next goal on same crop
+            if (data.Crop != null && data.Agent != null)
+            {
+                UnityEngine.Debug.Log($"[PlantSlow] {data.Agent.name} finished planting {data.Crop.name} (keeping reservation)");
+            }
+        }
+
+        public override void Stop(IMonoAgent agent, Data data)
+        {
+            // ONLY release crop if action was interrupted (not completed)
+            if (!data.ActionCompleted && data.Crop != null && data.Agent != null && CropManager.Instance != null)
+            {
+                CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
+                UnityEngine.Debug.Log($"[PlantSlow] {data.Agent.name} INTERRUPTED, released {data.Crop.name}");
+            }
         }
 
         public class Data : IActionData
@@ -72,6 +105,8 @@ namespace FarmingGoap.Actions
             public ITarget Target { get; set; }
             public float Timer;
             public CropBehaviour Crop;
+            public GameObject Agent; // For crop release
+            public bool ActionCompleted; // Track if action finished successfully
         }
     }
 }

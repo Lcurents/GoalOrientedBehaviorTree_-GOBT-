@@ -18,6 +18,22 @@ namespace FarmingGoap.Behaviours
         [SerializeField] private float hungerIncreaseRate = 5f; // per 10 detik
         [SerializeField] private float energyDecreaseRate = 3f; // per 10 detik saat bekerja
 
+        [Header("Utility Weights - Agent Personality")]
+        [UnityEngine.Tooltip("Weight untuk Energy cost (contoh: 0.2)")]
+        [SerializeField] private float weightEnergy = 0.2f;
+        
+        [UnityEngine.Tooltip("Weight untuk Hunger cost (contoh: 0.1)")]
+        [SerializeField] private float weightHunger = 0.1f;
+        
+        [UnityEngine.Tooltip("Benefit untuk PlantingGoal (contoh: 0.4)")]
+        [SerializeField] private float goalBenefitPlanting = 0.4f;
+        
+        [UnityEngine.Tooltip("Benefit untuk WateringGoal (contoh: 0.3)")]
+        [SerializeField] private float goalBenefitWatering = 0.3f;
+        
+        [UnityEngine.Tooltip("Benefit untuk HarvestingGoal (contoh: 0.8)")]
+        [SerializeField] private float goalBenefitHarvesting = 0.8f;
+
         private float passiveTimer = 0f;
 
         public float Hunger => hunger;
@@ -28,6 +44,13 @@ namespace FarmingGoap.Behaviours
         public int HasSeed { get => hasSeed; set => hasSeed = value; }
         public int HasWateringCan { get => hasWateringCan; set => hasWateringCan = value; }
         public int HasShovel { get => hasShovel; set => hasShovel = value; }
+        
+        // Utility weight properties (agent personality)
+        public float WeightEnergy => weightEnergy;
+        public float WeightHunger => weightHunger;
+        public float GoalBenefitPlanting => goalBenefitPlanting;
+        public float GoalBenefitWatering => goalBenefitWatering;
+        public float GoalBenefitHarvesting => goalBenefitHarvesting;
 
         private void Update()
         {

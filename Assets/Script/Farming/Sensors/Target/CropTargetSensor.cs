@@ -3,6 +3,7 @@ using CrashKonijn.Agent.Runtime;
 using CrashKonijn.Goap.Core;
 using CrashKonijn.Goap.Runtime;
 using FarmingGoap.Behaviours;
+using FarmingGoap.Managers;
 using UnityEngine;
 
 namespace FarmingGoap.Sensors.Target
@@ -11,6 +12,7 @@ namespace FarmingGoap.Sensors.Target
     public class CropTargetSensor : LocalTargetSensorBase
     {
         private CropBehaviour[] crops;
+        [SerializeField] private bool enableDebugLog = true; // Enable by default for multi-agent debugging
 
         public override void Created()
         {
@@ -35,9 +37,36 @@ namespace FarmingGoap.Sensors.Target
                 return null;
             }
 
-            // Return first crop found (for single crop setup)
-            // Later: find nearest crop
-            return new TransformTarget(crops[0].transform);
+            GameObject agentObject = agent.Transform.gameObject;
+            CropBehaviour currentlyOwnedCrop = null;
+
+            // CRITICAL FIX: ONLY return crop that is reserved for this agent
+            // Don't search for "nearest available" - that ignores auction results!
+            if (CropManager.Instance != null)
+            {
+                foreach (var crop in crops)
+                {
+                    var reservedAgent = CropManager.Instance.GetReservedAgent(crop);
+                    if (reservedAgent == agentObject)
+                    {
+                        currentlyOwnedCrop = crop;
+                        if (enableDebugLog)
+                            UnityEngine.Debug.Log($"[Sensor] {agentObject.name} → {crop.name} (reserved)");
+                        break;
+                    }
+                }
+            }
+
+            // Return reserved crop (or null if no reservation)
+            if (currentlyOwnedCrop != null)
+            {
+                return new TransformTarget(currentlyOwnedCrop.transform);
+            }
+
+            // No reserved crop = agent can't act yet (needs to bid in auction first)
+            if (enableDebugLog)
+                UnityEngine.Debug.LogWarning($"[Sensor] {agentObject.name} → NULL (no reserved crop - wait for auction)");
+            return null;
         }
     }
 }

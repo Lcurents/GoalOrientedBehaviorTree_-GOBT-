@@ -35,57 +35,95 @@ namespace FarmingGoap.Brain
         // ========== PUBLIC METHODS ==========
         
         /// <summary>
-        /// Hitung utility untuk PlantingGoal
+        /// Hitung utility untuk PlantingGoal (dengan agent-specific weights)
         /// </summary>
-        public static float CalculatePlantingUtility(float currentEnergy, float currentHunger, int cropStage)
+        public static float CalculatePlantingUtility(float currentEnergy, float currentHunger, int cropStage, 
+            float weightEnergy, float weightHunger, float goalBenefit)
         {
             // Disable jika crop sudah ditanam
             if (cropStage > 0)
-                return -999f; // Use readable disabled value instead of float.MinValue
+                return -999f;
             
             return CalculateUtility(
-                BENEFIT_PLANTING,
+                goalBenefit,
                 PLANTING_ENERGY_COST,
                 PLANTING_HUNGER_COST,
                 currentEnergy,
-                currentHunger
+                currentHunger,
+                weightEnergy,
+                weightHunger
             );
         }
         
         /// <summary>
-        /// Hitung utility untuk WateringGoal
+        /// Hitung utility untuk WateringGoal (dengan agent-specific weights)
         /// </summary>
-        public static float CalculateWateringUtility(float currentEnergy, float currentHunger, int cropStage)
+        public static float CalculateWateringUtility(float currentEnergy, float currentHunger, int cropStage,
+            float weightEnergy, float weightHunger, float goalBenefit)
         {
             // Disable jika crop belum ditanam atau sudah matang
             if (cropStage < 1 || cropStage >= 3)
-                return -999f; // Use readable disabled value
+                return -999f;
             
             return CalculateUtility(
-                BENEFIT_WATERING,
+                goalBenefit,
                 WATERING_ENERGY_COST,
                 WATERING_HUNGER_COST,
                 currentEnergy,
-                currentHunger
+                currentHunger,
+                weightEnergy,
+                weightHunger
             );
         }
         
         /// <summary>
-        /// Hitung utility untuk HarvestingGoal
+        /// Hitung utility untuk HarvestingGoal (dengan agent-specific weights)
         /// </summary>
-        public static float CalculateHarvestingUtility(float currentEnergy, float currentHunger, int cropStage)
+        public static float CalculateHarvestingUtility(float currentEnergy, float currentHunger, int cropStage,
+            float weightEnergy, float weightHunger, float goalBenefit)
         {
             // Disable jika crop belum matang
             if (cropStage < 3)
-                return -999f; // Use readable disabled value
+                return -999f;
             
             return CalculateUtility(
-                BENEFIT_HARVESTING,
+                goalBenefit,
                 HARVESTING_ENERGY_COST,
                 HARVESTING_HUNGER_COST,
                 currentEnergy,
-                currentHunger
+                currentHunger,
+                weightEnergy,
+                weightHunger
             );
+        }
+        
+        // ========== LEGACY METHODS (for backward compatibility) ==========
+        
+        /// <summary>
+        /// Hitung utility untuk PlantingGoal (legacy - uses default weights)
+        /// </summary>
+        public static float CalculatePlantingUtility(float currentEnergy, float currentHunger, int cropStage)
+        {
+            return CalculatePlantingUtility(currentEnergy, currentHunger, cropStage, 
+                WEIGHT_ENERGY, WEIGHT_HUNGER, BENEFIT_PLANTING);
+        }
+        
+        /// <summary>
+        /// Hitung utility untuk WateringGoal (legacy - uses default weights)
+        /// </summary>
+        public static float CalculateWateringUtility(float currentEnergy, float currentHunger, int cropStage)
+        {
+            return CalculateWateringUtility(currentEnergy, currentHunger, cropStage,
+                WEIGHT_ENERGY, WEIGHT_HUNGER, BENEFIT_WATERING);
+        }
+        
+        /// <summary>
+        /// Hitung utility untuk HarvestingGoal (legacy - uses default weights)
+        /// </summary>
+        public static float CalculateHarvestingUtility(float currentEnergy, float currentHunger, int cropStage)
+        {
+            return CalculateHarvestingUtility(currentEnergy, currentHunger, cropStage,
+                WEIGHT_ENERGY, WEIGHT_HUNGER, BENEFIT_HARVESTING);
         }
         
         // ========== PRIVATE HELPER ==========
@@ -98,11 +136,13 @@ namespace FarmingGoap.Brain
             float energyCost,
             float hungerCost,
             float currentEnergy,
-            float currentHunger)
+            float currentHunger,
+            float weightEnergy,
+            float weightHunger)
         {
             float benefitTerm = WEIGHT_GOAL * goalBenefit;
-            float energyTerm = WEIGHT_ENERGY * (energyCost / MAX_ENERGY);
-            float hungerTerm = WEIGHT_HUNGER * (hungerCost / MAX_HUNGER);
+            float energyTerm = weightEnergy * (energyCost / MAX_ENERGY);
+            float hungerTerm = weightHunger * (hungerCost / MAX_HUNGER);
             
             float utility = benefitTerm - energyTerm - hungerTerm;
             
@@ -113,6 +153,20 @@ namespace FarmingGoap.Brain
             }
             
             return utility;
+        }
+        
+        /// <summary>
+        /// Legacy overload (for backward compatibility)
+        /// </summary>
+        private static float CalculateUtility(
+            float goalBenefit,
+            float energyCost,
+            float hungerCost,
+            float currentEnergy,
+            float currentHunger)
+        {
+            return CalculateUtility(goalBenefit, energyCost, hungerCost, currentEnergy, currentHunger,
+                WEIGHT_ENERGY, WEIGHT_HUNGER);
         }
         
         // ========== DEBUG HELPER ==========

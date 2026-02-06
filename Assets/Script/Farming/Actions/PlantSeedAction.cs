@@ -28,7 +28,7 @@ namespace FarmingGoap.Actions
                 data.Timer = 5f; // Tanpa sekop: lambat (5 detik)
             }
 
-            // Find crop
+            // Find crop at target position
             var targetPos = data.Target.Position;
             var nearbyColliders = Physics2D.OverlapCircleAll(targetPos, 1f);
             
@@ -37,9 +37,24 @@ namespace FarmingGoap.Actions
                 var crop = col.GetComponent<CropBehaviour>();
                 if (crop != null)
                 {
-                    data.Crop = crop;
-                    break;
+                    // CRITICAL: Verify this crop is reserved by THIS agent
+                    var reservedAgent = FarmingGoap.Managers.CropManager.Instance?.GetReservedAgent(crop);
+                    if (reservedAgent == agent.gameObject)
+                    {
+                        data.Crop = crop;
+                        UnityEngine.Debug.Log($"[PlantSeed] {agent.gameObject.name} verified reserved crop: {crop.name}");
+                        break;
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogWarning($"[PlantSeed] {agent.gameObject.name} found {crop.name} but it's reserved by {reservedAgent?.name ?? "NONE"}! Ignoring.");
+                    }
                 }
+            }
+            
+            if (data.Crop == null)
+            {
+                UnityEngine.Debug.LogError($"[PlantSeed] {agent.gameObject.name} couldn't find their reserved crop at target position!");
             }
         }
 
@@ -66,6 +81,7 @@ namespace FarmingGoap.Actions
                     }
                 }
 
+                data.ActionCompleted = true; // Mark as successfully completed
                 return ActionRunState.Completed;
             }
 
@@ -81,6 +97,7 @@ namespace FarmingGoap.Actions
             public ITarget Target { get; set; }
             public float Timer;
             public CropBehaviour Crop;
+            public bool ActionCompleted; // Track if action finished successfully
         }
     }
 }

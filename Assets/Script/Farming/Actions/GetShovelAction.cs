@@ -29,8 +29,16 @@ namespace FarmingGoap.Actions
                 var stats = agent.GetComponent<NPCStats>();
                 if (stats != null)
                 {
-                    stats.HasShovel++;
-                    UnityEngine.Debug.Log($"[GetShovelAction] Ambil sekop! HasShovel: {stats.HasShovel}");
+                    // Limit to 2 shovels max (prevent excessive accumulation)
+                    if (stats.HasShovel < 2)
+                    {
+                        stats.HasShovel++;
+                        UnityEngine.Debug.Log($"[GetShovelAction] Ambil sekop! HasShovel: {stats.HasShovel}");
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.Log($"[GetShovelAction] Sudah punya cukup sekop, skip. HasShovel: {stats.HasShovel}");
+                    }
                 }
                 
                 return ActionRunState.Completed;

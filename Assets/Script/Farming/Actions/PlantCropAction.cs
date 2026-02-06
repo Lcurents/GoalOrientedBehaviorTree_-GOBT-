@@ -27,9 +27,24 @@ namespace FarmingGoap.Actions
                 var crop = col.GetComponent<CropBehaviour>();
                 if (crop != null)
                 {
-                    data.Crop = crop;
-                    break;
+                    // CRITICAL: Verify this crop is reserved by THIS agent
+                    var reservedAgent = FarmingGoap.Managers.CropManager.Instance?.GetReservedAgent(crop);
+                    if (reservedAgent == agent.gameObject)
+                    {
+                        data.Crop = crop;
+                        UnityEngine.Debug.Log($"[PlantCrop] {agent.gameObject.name} verified reserved crop: {crop.name}");
+                        break;
+                    }
+                    else
+                    {
+                        UnityEngine.Debug.LogWarning($"[PlantCrop] {agent.gameObject.name} found {crop.name} but it's reserved by {reservedAgent?.name ?? "NONE"}! Ignoring.");
+                    }
                 }
+            }
+            
+            if (data.Crop == null)
+            {
+                UnityEngine.Debug.LogError($"[PlantCrop] {agent.gameObject.name} couldn't find their reserved crop at target position!");
             }
         }
 
@@ -49,6 +64,7 @@ namespace FarmingGoap.Actions
                 UnityEngine.Debug.Log($"[PlantCropAction] Tanaman ditanam!");
             }
 
+            data.ActionCompleted = true; // Mark as successfully completed
             return ActionRunState.Completed;
         }
 
@@ -63,6 +79,8 @@ namespace FarmingGoap.Actions
             public CropBehaviour Crop { get; set; } // Manual reference, not GetComponent
             
             public float Timer { get; set; }
+            
+            public bool ActionCompleted { get; set; } // Track if action finished successfully
         }
     }
 }
