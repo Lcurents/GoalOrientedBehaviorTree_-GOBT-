@@ -1,0 +1,29 @@
+# Folder Unity yang WAJIB di-ignore (Auto-generated)
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+
+# File Visual Studio / Coding (Auto-generated)
+.vs/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# File Sistem Operasi (Sampah)
+.DS_Store
+Thumbs.db

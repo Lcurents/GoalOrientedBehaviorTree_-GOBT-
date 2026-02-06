@@ -1,0 +1,10 @@
+using CrashKonijn.Goap.Core;
+using CrashKonijn.Goap.Runtime;
+
+namespace FarmingGoap.TargetKeys
+{
+    [GoapId("Farming-BedTarget")]
+    public class BedTarget : TargetKeyBase
+    {
+    }
+}
