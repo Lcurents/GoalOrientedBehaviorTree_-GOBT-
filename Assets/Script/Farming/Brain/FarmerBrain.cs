@@ -54,12 +54,15 @@ namespace FarmingGoap.Brain
             if (stats == null || crop == null)
                 return;
 
-            // ========== REDESIGNED BRAIN - Priority Based ==========
+            // ========== HYBRID SYSTEM: Priority + Utility ==========
+            
+            // ===== PRIORITY-BASED (Survival Needs) =====
             
             // Priority 1: Eat (hanya jika punya food)
             if (stats.Hunger > 70f && stats.FoodCount > 0)
             {
                 provider.RequestGoal<EatGoal>();
+                UnityEngine.Debug.Log("[Brain] Priority: EatGoal");
                 return;
             }
 
@@ -67,32 +70,67 @@ namespace FarmingGoap.Brain
             if (stats.Energy < 30f)
             {
                 provider.RequestGoal<SleepGoal>();
+                UnityEngine.Debug.Log("[Brain] Priority: SleepGoal");
                 return;
             }
 
-            // Priority 3: Harvest (jika crop matang)
-            if (crop.GrowthStage >= 3)
+            // ===== UTILITY-BASED (Farming Goals) =====
+            
+            // Hitung utility untuk 3 farming goals
+            float plantingUtility = UtilityCalculator.CalculatePlantingUtility(
+                stats.Energy, 
+                stats.Hunger, 
+                crop.GrowthStage
+            );
+            
+            float wateringUtility = UtilityCalculator.CalculateWateringUtility(
+                stats.Energy, 
+                stats.Hunger, 
+                crop.GrowthStage
+            );
+            
+            float harvestingUtility = UtilityCalculator.CalculateHarvestingUtility(
+                stats.Energy, 
+                stats.Hunger, 
+                crop.GrowthStage
+            );
+            
+            // Debug utility values
+            UnityEngine.Debug.Log(UtilityCalculator.GetUtilityDebugString(
+                plantingUtility, 
+                wateringUtility, 
+                harvestingUtility
+            ));
+            
+            // Pilih goal dengan utility tertinggi
+            float maxUtility = Mathf.Max(plantingUtility, wateringUtility, harvestingUtility);
+            
+            // Jika ada goal yang valid (utility > -999)
+            if (maxUtility > -999f)
             {
-                provider.RequestGoal<HarvestingGoal>();
+                if (maxUtility == harvestingUtility)
+                {
+                    provider.RequestGoal<HarvestingGoal>();
+                    UnityEngine.Debug.Log($"[Brain] Utility: HarvestingGoal (U={maxUtility:F3})");
+                }
+                else if (maxUtility == plantingUtility)
+                {
+                    provider.RequestGoal<PlantingGoal>();
+                    UnityEngine.Debug.Log($"[Brain] Utility: PlantingGoal (U={maxUtility:F3})");
+                }
+                else if (maxUtility == wateringUtility)
+                {
+                    provider.RequestGoal<WateringGoal>();
+                    UnityEngine.Debug.Log($"[Brain] Utility: WateringGoal (U={maxUtility:F3})");
+                }
                 return;
             }
 
-            // Priority 4: Water (jika crop perlu air)
-            if (crop.GrowthStage >= 1 && crop.GrowthStage < 3)
-            {
-                provider.RequestGoal<WateringGoal>();
-                return;
-            }
-
-            // Priority 5: Plant (jika tanah kosong)
-            if (crop.GrowthStage == 0)
-            {
-                provider.RequestGoal<PlantingGoal>();
-                return;
-            }
-
-            // Priority 6: Idle (tidak ada yang dilakukan)
+            // ===== FALLBACK =====
+            
+            // Tidak ada goal yang bisa dilakukan → Idle
             provider.RequestGoal<IdleGoal>();
+            UnityEngine.Debug.Log("[Brain] Fallback: IdleGoal");
         }
     }
 }
