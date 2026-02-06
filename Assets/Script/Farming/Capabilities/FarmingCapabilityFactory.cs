@@ -53,20 +53,31 @@ namespace FarmingGoap.Capabilities
                 .SetBaseCost(1)
                 .SetInRange(1f);
 
-            // ACTION: GetShovelAction (Optional)
+            // ACTION: GetShovelAction (Optional optimization)
             builder.AddAction<GetShovelAction>()
                 .AddEffect<HasShovelKey>(EffectType.Increase)
                 .SetTarget<ShovelStorageTargetKey>()
-                .SetBaseCost(2)
+                .SetBaseCost(0) // Cost 0 = sekop gratis, GOAP akan ambil jika storage accessible
                 .SetInRange(1f);
 
-            // ACTION: PlantSeedAction
-            builder.AddAction<PlantSeedAction>()
+            // ACTION: PlantSeedFastAction (WITH shovel - preferred)
+            builder.AddAction<PlantSeedFastAction>()
                 .AddCondition<CropGrowthStage>(Comparison.SmallerThanOrEqual, 0) // Tanah kosong
                 .AddCondition<HasSeedKey>(Comparison.GreaterThanOrEqual, 1) // Harus punya bibit
+                .AddCondition<HasShovelKey>(Comparison.GreaterThanOrEqual, 1) // Harus punya sekop ⭐
                 .AddEffect<CropGrowthStage>(EffectType.Increase)
                 .SetTarget<CropTarget>()
-                .SetBaseCost(2) // Base cost, akan lebih mahal kalau tanpa sekop
+                .SetBaseCost(1) // Low cost karena fast (2s)
+                .SetInRange(1f);
+
+            // ACTION: PlantSeedSlowAction (WITHOUT shovel - fallback)
+            builder.AddAction<PlantSeedSlowAction>()
+                .AddCondition<CropGrowthStage>(Comparison.SmallerThanOrEqual, 0) // Tanah kosong
+                .AddCondition<HasSeedKey>(Comparison.GreaterThanOrEqual, 1) // Harus punya bibit
+                // NO HasShovelKey condition = fallback option
+                .AddEffect<CropGrowthStage>(EffectType.Increase)
+                .SetTarget<CropTarget>()
+                .SetBaseCost(3) // High cost karena slow (5s)
                 .SetInRange(1f);
 
             // ACTION: GetWateringCanAction
