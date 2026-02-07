@@ -2,7 +2,7 @@ using CrashKonijn.Goap.Runtime;
 
 namespace FarmingGoap.TargetKeys
 {
-    [GoapId("Farming-WaterSourceTarget")]
+    [GoapId("Farming-WaterSourceTargetKey")]
     public class WaterSourceTargetKey : TargetKeyBase
     {
     }

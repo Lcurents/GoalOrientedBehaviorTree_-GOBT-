@@ -110,6 +110,8 @@ namespace FarmingGoap.Actions
             public float Timer { get; set; }
             
             public GameObject Agent { get; set; } // For crop release
+            
+            public bool ActionCompleted { get; set; } // Track if action completed successfully
         }
     }
 }

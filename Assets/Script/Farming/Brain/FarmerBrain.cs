@@ -2,6 +2,7 @@ using CrashKonijn.Agent.Runtime;
 using CrashKonijn.Goap.Runtime;
 using FarmingGoap.Behaviours;
 using FarmingGoap.Goals;
+using FarmingGoap.AgentTypes;
 using UnityEngine;
 
 namespace FarmingGoap.Brain
@@ -17,6 +18,7 @@ namespace FarmingGoap.Brain
         private GoapBehaviour goap;
         private NPCStats stats;
         private CropBehaviour crop; // Reference ke crop di scene
+        private bool agentTypeAssigned = false;
 
         private void Awake()
         {
@@ -31,17 +33,32 @@ namespace FarmingGoap.Brain
             // Link AgentBehaviour dengan GoapActionProvider (WAJIB!)
             this.agent.ActionProvider = this.provider;
 
-            // Set AgentType via code (PENTING!)
-            if (this.provider.AgentTypeBehaviour == null)
+            // Assign AgentType in Awake - GoapBehaviour runs at -100 so it's already initialized
+            // GoapSetupHelper runs at -101 ensuring factory is registered before GoapBehaviour
+            if (this.provider.AgentTypeBehaviour == null && this.goap != null)
             {
-                this.provider.AgentType = this.goap.GetAgentType("FarmerAgent");
+                try
+                {
+                    this.provider.AgentType = this.goap.GetAgentType("FarmerAgent");
+                    agentTypeAssigned = true;
+                    UnityEngine.Debug.Log($"[FarmerBrain] ✓ AgentType assigned to {gameObject.name}");
+                }
+                catch (System.Exception e)
+                {
+                    UnityEngine.Debug.LogError($"[FarmerBrain] ✗ Failed to assign AgentType to {gameObject.name}: {e.Message}");
+                    UnityEngine.Debug.LogError($"[FarmerBrain] SOLUTION: Add 'GoapSetupHelper' + 'FarmerAgentTypeFactory' to '{goap.name}' GameObject!");
+                }
+            }
+            else if (this.provider.AgentTypeBehaviour != null)
+            {
+                agentTypeAssigned = true;
             }
         }
 
         private void Start()
         {
             // Set initial goal (hanya jika code-based enabled)
-            if (useCodeBasedSelection)
+            if (useCodeBasedSelection && agentTypeAssigned)
             {
                 SelectGoal();
             }
@@ -50,7 +67,7 @@ namespace FarmingGoap.Brain
         private void Update()
         {
             // Hanya jalankan SelectGoal jika tidak pakai Behavior Tree
-            if (!useCodeBasedSelection)
+            if (!useCodeBasedSelection || !agentTypeAssigned)
                 return;
             
             // Re-evaluate goal setiap 1 detik
@@ -62,7 +79,7 @@ namespace FarmingGoap.Brain
 
         private void SelectGoal()
         {
-            if (stats == null || crop == null)
+            if (stats == null || crop == null || !agentTypeAssigned)
                 return;
 
             // ========== HYBRID SYSTEM: Priority + Utility ==========

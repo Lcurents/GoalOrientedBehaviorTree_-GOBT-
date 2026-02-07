@@ -35,6 +35,55 @@ namespace FarmingGoap.Managers
             {
                 Destroy(gameObject);
             }
+            
+            // DIAGNOSTIC: Log all crops found at startup
+            StartCoroutine(DiagnosticCheckCrops());
+        }
+        
+        private System.Collections.IEnumerator DiagnosticCheckCrops()
+        {
+            yield return new WaitForSeconds(0.5f); // Wait for scene to fully load
+            
+            var allCrops = FindObjectsByType<CropBehaviour>(FindObjectsSortMode.None);
+            
+            UnityEngine.Debug.Log($"========== CROPMANAGER DIAGNOSTIC ==========");
+            UnityEngine.Debug.Log($"[CropManager] Total crops found in scene: {allCrops.Length}");
+            
+            if (allCrops.Length == 0)
+            {
+                UnityEngine.Debug.LogError($"[CropManager] ❌ NO CROPS FOUND! Add CropBehaviour to crops in scene!");
+            }
+            else
+            {
+                for (int i = 0; i < allCrops.Length; i++)
+                {
+                    var crop = allCrops[i];
+                    UnityEngine.Debug.Log(
+                        $"[CropManager] Crop #{i+1}: " +
+                        $"Name='{crop.gameObject.name}', " +
+                        $"InstanceID={crop.GetInstanceID()}, " +
+                        $"Position={crop.transform.position}"
+                    );
+                }
+                
+                // Verify all crops have unique instances
+                var uniqueIDs = new System.Collections.Generic.HashSet<int>();
+                foreach (var crop in allCrops)
+                {
+                    uniqueIDs.Add(crop.GetInstanceID());
+                }
+                
+                if (uniqueIDs.Count == allCrops.Length)
+                {
+                    UnityEngine.Debug.Log($"[CropManager] ✅ All crops have UNIQUE instances (tracking will work correctly)");
+                }
+                else
+                {
+                    UnityEngine.Debug.LogError($"[CropManager] ❌ BUG: Some crops share instances!");
+                }
+            }
+            
+            UnityEngine.Debug.Log($"============================================");
         }
 
         /// <summary>
@@ -78,9 +127,14 @@ namespace FarmingGoap.Managers
 
             pendingBids[crop].Add(bid);
 
-            // Only log bids if crop currently has different owner (competitive bid)
+            // DIAGNOSTIC: Log bid with crop instance info
             if (enableDebugLog && (!cropReservations.ContainsKey(crop) || cropReservations[crop] != agent))
-                UnityEngine.Debug.Log($"[Bid] {agent.name} → {crop.name} (U={utility:F3}, {goalType})");
+            {
+                UnityEngine.Debug.Log(
+                    $"[Bid] {agent.name} → {crop.name} " +
+                    $"(U={utility:F3}, {goalType}, CropID={crop.GetInstanceID()})"
+                );
+            }
             
             // CRITICAL FIX: Run auction immediately so GOAP can plan with correct reservations!
             // Don't wait for Update() - agents need reservations BEFORE GOAP planning starts
@@ -94,6 +148,17 @@ namespace FarmingGoap.Managers
         private void RunAuctionImmediate()
         {
             if (pendingBids.Count == 0) return;
+
+            // DIAGNOSTIC: Log how many unique crops have bids
+            if (enableDebugLog)
+            {
+                var uniqueCropIDs = new System.Collections.Generic.HashSet<int>();
+                foreach (var crop in pendingBids.Keys)
+                {
+                    uniqueCropIDs.Add(crop.GetInstanceID());
+                }
+                UnityEngine.Debug.Log($"[Auction] Processing bids for {pendingBids.Count} crops (Unique IDs: {uniqueCropIDs.Count})");
+            }
 
             foreach (var kvp in pendingBids)
             {

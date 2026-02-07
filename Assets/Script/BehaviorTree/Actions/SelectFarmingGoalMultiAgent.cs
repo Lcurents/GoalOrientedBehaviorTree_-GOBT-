@@ -40,6 +40,12 @@ namespace FarmingGoap.BehaviorTree
                 return TaskStatus.Failure;
             }
 
+            // Guard: Don't request goals if AgentType hasn't been assigned yet
+            if (actionProvider.AgentType == null)
+            {
+                return TaskStatus.Failure;
+            }
+
             if (CropManager.Instance == null)
             {
                 UnityEngine.Debug.LogError($"[{Owner.name}] CropManager not found! Add CropManager to scene.");
@@ -54,6 +60,17 @@ namespace FarmingGoap.BehaviorTree
                 if (enableDebugLog.Value)
                     UnityEngine.Debug.LogWarning($"[{Owner.name}] No crops found in scene");
                 return TaskStatus.Failure;
+            }
+            
+            // DIAGNOSTIC: Log how many crops found
+            if (enableDebugLog.Value && Time.frameCount % 300 == 0) // Every 5 seconds
+            {
+                var uniqueIDs = new System.Collections.Generic.HashSet<int>();
+                foreach (var c in allCrops)
+                {
+                    uniqueIDs.Add(c.GetInstanceID());
+                }
+                UnityEngine.Debug.Log($"[{Owner.name}] Found {allCrops.Length} crops (Unique IDs: {uniqueIDs.Count})");
             }
 
             // Declare agentPos once at method scope to avoid CS0136 error
