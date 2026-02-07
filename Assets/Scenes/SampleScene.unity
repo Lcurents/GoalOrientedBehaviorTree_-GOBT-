@@ -275,9 +275,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 091b3bf9515206346b2598d6b5323c9f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hunger: 30
+  hunger: 80
   energy: 20
-  foodCount: 0
+  sharedFoodDisplay: 0
   hasSeed: 0
   hasWateringCan: 0
   hasShovel: 0
@@ -854,7 +854,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hunger: 70
   energy: 21
-  foodCount: 0
+  sharedFoodDisplay: 0
   hasSeed: 0
   hasWateringCan: 0
   hasShovel: 0
@@ -14269,7 +14269,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hunger: 12
   energy: 33
-  foodCount: 0
+  sharedFoodDisplay: 0
   hasSeed: 0
   hasWateringCan: 0
   hasShovel: 0
