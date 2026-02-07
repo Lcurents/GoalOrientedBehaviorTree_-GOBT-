@@ -40,10 +40,10 @@ namespace FarmingGoap.Behaviours
 
                     if (growthStage >= 3)
                     {
-                        isGrowing = false; // Sudah matang
+                        isGrowing = false;
                     }
 
-                    UnityEngine.Debug.Log($"[CropBehaviour] Tanaman tumbuh ke stage {growthStage}");
+                    FarmLog.Crop(gameObject.name, $"Growth -> Stage {growthStage}");
                 }
             }
         }
@@ -61,7 +61,7 @@ namespace FarmingGoap.Behaviours
             isGrowing = true;
             growthTimer = 0f;
             UpdateVisual();
-            UnityEngine.Debug.Log("[CropBehaviour] Bibit ditanam! Stage: 1");
+            FarmLog.Crop(gameObject.name, "Planted -> Stage 1");
         }
 
         public void WaterCrop()
@@ -70,8 +70,7 @@ namespace FarmingGoap.Behaviours
             if (growthStage >= 1 && growthStage < 3)
             {
                 isGrowing = true;
-                // Tidak langsung grow, akan grow otomatis di Update()
-                UnityEngine.Debug.Log($"[CropBehaviour] Tanaman disiram! Akan tumbuh dalam {growthTimePerStage} detik");
+                FarmLog.Crop(gameObject.name, $"Watered at Stage {growthStage} | GrowthTimer={growthTimePerStage}s");
             }
         }
 
@@ -82,7 +81,7 @@ namespace FarmingGoap.Behaviours
             isGrowing = false;
             growthTimer = 0f;
             UpdateVisual();
-            UnityEngine.Debug.Log("[CropBehaviour] Tanaman dipanen! Reset ke stage 0");
+            FarmLog.Crop(gameObject.name, "Harvested -> Stage 0 (reset)");
         }
 
         private void UpdateVisual()

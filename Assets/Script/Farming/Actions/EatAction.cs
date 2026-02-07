@@ -32,8 +32,8 @@ namespace FarmingGoap.Actions
             if (stats != null && stats.FoodCount > 0)
             {
                 stats.RemoveFood(1);
-                stats.DecreaseHunger(50); // Kurangi hunger 50
-                UnityEngine.Debug.Log($"[EatAction] Makan! Hunger: {stats.Hunger}, Food: {stats.FoodCount}");
+                stats.DecreaseHunger(50);
+                FarmLog.Action(agent.gameObject.name, $"Eat COMPLETE | Hunger={stats.Hunger:F0}, SharedFood={stats.FoodCount}");
             }
 
             return ActionRunState.Completed;

@@ -95,7 +95,6 @@ namespace FarmingGoap.Behaviours
         public void AddFood(int amount)
         {
             sharedFoodCount += amount;
-            UnityEngine.Debug.Log($"[{gameObject.name}] Added {amount} food → shared total: {sharedFoodCount}");
         }
 
         public void RemoveFood(int amount)

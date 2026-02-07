@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FarmingGoap.Behaviours;
 using UnityEngine;
+using System.Text;
 
 namespace FarmingGoap.Managers
 {
@@ -42,48 +43,26 @@ namespace FarmingGoap.Managers
         
         private System.Collections.IEnumerator DiagnosticCheckCrops()
         {
-            yield return new WaitForSeconds(0.5f); // Wait for scene to fully load
+            yield return new WaitForSeconds(0.5f);
             
             var allCrops = FindObjectsByType<CropBehaviour>(FindObjectsSortMode.None);
             
-            UnityEngine.Debug.Log($"========== CROPMANAGER DIAGNOSTIC ==========");
-            UnityEngine.Debug.Log($"[CropManager] Total crops found in scene: {allCrops.Length}");
+            var sb = new StringBuilder();
+            sb.AppendLine($"CropManager initialized | {allCrops.Length} crops detected");
             
             if (allCrops.Length == 0)
             {
-                UnityEngine.Debug.LogError($"[CropManager] ❌ NO CROPS FOUND! Add CropBehaviour to crops in scene!");
+                FarmLog.SystemError("No crops found in scene! Add CropBehaviour to crop GameObjects.");
             }
             else
             {
                 for (int i = 0; i < allCrops.Length; i++)
                 {
                     var crop = allCrops[i];
-                    UnityEngine.Debug.Log(
-                        $"[CropManager] Crop #{i+1}: " +
-                        $"Name='{crop.gameObject.name}', " +
-                        $"InstanceID={crop.GetInstanceID()}, " +
-                        $"Position={crop.transform.position}"
-                    );
+                    sb.AppendLine($"    Crop #{i+1}: {crop.gameObject.name} | Pos={crop.transform.position}");
                 }
-                
-                // Verify all crops have unique instances
-                var uniqueIDs = new System.Collections.Generic.HashSet<int>();
-                foreach (var crop in allCrops)
-                {
-                    uniqueIDs.Add(crop.GetInstanceID());
-                }
-                
-                if (uniqueIDs.Count == allCrops.Length)
-                {
-                    UnityEngine.Debug.Log($"[CropManager] ✅ All crops have UNIQUE instances (tracking will work correctly)");
-                }
-                else
-                {
-                    UnityEngine.Debug.LogError($"[CropManager] ❌ BUG: Some crops share instances!");
-                }
+                FarmLog.System(sb.ToString().TrimEnd());
             }
-            
-            UnityEngine.Debug.Log($"============================================");
         }
 
         /// <summary>
@@ -114,11 +93,11 @@ namespace FarmingGoap.Managers
             if (crop == null || agent == null) return;
 
             // RULE: Can't bid on crop already reserved by ANOTHER agent
-            // This ensures first-come-first-served: existing reservations are never overridden
+            // First-come-first-served: existing reservations are never overridden
             if (cropReservations.ContainsKey(crop) && cropReservations[crop] != agent)
             {
                 if (enableDebugLog)
-                    UnityEngine.Debug.Log($"[Bid] {agent.name} → {crop.name} REJECTED (reserved by {cropReservations[crop].name})");
+                    FarmLog.AuctionWarn($"{agent.name} -> {crop.name} REJECTED (reserved by {cropReservations[crop].name})");
                 return;
             }
 
@@ -136,13 +115,9 @@ namespace FarmingGoap.Managers
 
             pendingBids[crop].Add(bid);
 
-            // DIAGNOSTIC: Log bid with crop instance info
             if (enableDebugLog && (!cropReservations.ContainsKey(crop) || cropReservations[crop] != agent))
             {
-                UnityEngine.Debug.Log(
-                    $"[Bid] {agent.name} → {crop.name} " +
-                    $"(U={utility:F3}, {goalType}, CropID={crop.GetInstanceID()})"
-                );
+                FarmLog.Auction($"BID: {agent.name} -> {crop.name} | U={utility:F3} | Goal={goalType}");
             }
             
             // CRITICAL FIX: Run auction immediately so GOAP can plan with correct reservations!
@@ -158,16 +133,7 @@ namespace FarmingGoap.Managers
         {
             if (pendingBids.Count == 0) return;
 
-            // DIAGNOSTIC: Log how many unique crops have bids
-            if (enableDebugLog)
-            {
-                var uniqueCropIDs = new System.Collections.Generic.HashSet<int>();
-                foreach (var crop in pendingBids.Keys)
-                {
-                    uniqueCropIDs.Add(crop.GetInstanceID());
-                }
-                UnityEngine.Debug.Log($"[Auction] Processing bids for {pendingBids.Count} crops (Unique IDs: {uniqueCropIDs.Count})");
-            }
+            // Skip verbose processing log - auction results below are sufficient
 
             foreach (var kvp in pendingBids)
             {
@@ -185,24 +151,23 @@ namespace FarmingGoap.Managers
                     ReserveCrop(crop, winner.agent);
                     lastAuctionWinners[crop] = winner.agent;
                     
-                    // Only log if winner changed
                     if (enableDebugLog && winnerChanged)
-                        UnityEngine.Debug.Log($"[Auction] {crop.name}: {winner.agent.name} (U={winner.utility:F3})");
+                        FarmLog.Auction($"RESULT: {crop.name} -> WINNER: {winner.agent.name} (U={winner.utility:F3}, {winner.goalType}) | No competitors");
                 }
                 else
                 {
-                    // Multiple bidders = auction!
-                    var winner = bids.OrderByDescending(b => b.utility).First();
+                    // Multiple bidders = competitive auction!
+                    var sorted = bids.OrderByDescending(b => b.utility).ToList();
+                    var winner = sorted[0];
                     bool winnerChanged = !lastAuctionWinners.ContainsKey(crop) || lastAuctionWinners[crop] != winner.agent;
                     
                     ReserveCrop(crop, winner.agent);
                     lastAuctionWinners[crop] = winner.agent;
 
-                    // Only log competitive auctions or when winner changes
                     if (enableDebugLog && winnerChanged)
                     {
-                        string bidDetails = string.Join(", ", bids.Select(b => $"{b.agent.name}(U={b.utility:F3})"));
-                        UnityEngine.Debug.Log($"[Auction] {crop.name}: {winner.agent.name} WINS vs [{bidDetails}]");
+                        string losers = string.Join(", ", sorted.Skip(1).Select(b => $"{b.agent.name}(U={b.utility:F3})"));
+                        FarmLog.Auction($"RESULT: {crop.name} -> WINNER: {winner.agent.name} (U={winner.utility:F3}, {winner.goalType}) | LOSERS: {losers}");
                     }
                 }
             }
@@ -219,9 +184,8 @@ namespace FarmingGoap.Managers
             bool isNewReservation = !cropReservations.ContainsKey(crop) || cropReservations[crop] != agent;
             cropReservations[crop] = agent;
             
-            // Log reservation for debugging multi-agent issues
             if (enableDebugLog && isNewReservation)
-                UnityEngine.Debug.Log($"[CropManager] RESERVED: {agent.name} → {crop.name}");
+                FarmLog.Auction($"RESERVED: {agent.name} -> {crop.name}");
         }
 
         /// <summary>
@@ -236,7 +200,7 @@ namespace FarmingGoap.Managers
                 cropReservations.Remove(crop);
                 
                 if (enableDebugLog)
-                    UnityEngine.Debug.Log($"[CropManager] Released: {agent.name} released {crop.name}");
+                    FarmLog.Auction($"RELEASED: {agent.name} released {crop.name}");
             }
         }
 

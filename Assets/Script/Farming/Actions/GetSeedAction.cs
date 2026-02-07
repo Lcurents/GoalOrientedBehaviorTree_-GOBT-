@@ -29,15 +29,10 @@ namespace FarmingGoap.Actions
                 var stats = agent.GetComponent<NPCStats>();
                 if (stats != null)
                 {
-                    // Limit to 2 seeds max (prevent excessive accumulation)
                     if (stats.HasSeed < 2)
                     {
                         stats.HasSeed++;
-                        UnityEngine.Debug.Log($"[GetSeedAction] Ambil bibit! HasSeed: {stats.HasSeed}");
-                    }
-                    else
-                    {
-                        UnityEngine.Debug.Log($"[GetSeedAction] Sudah punya cukup bibit, skip. HasSeed: {stats.HasSeed}");
+                        FarmLog.Resource(agent.gameObject.name, $"GetSeed | Seed={stats.HasSeed}");
                     }
                 }
                 

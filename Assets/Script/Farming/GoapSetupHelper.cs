@@ -17,7 +17,7 @@ namespace FarmingGoap
             var goap = GetComponent<GoapBehaviour>();
             if (goap == null)
             {
-                UnityEngine.Debug.LogError("[GoapSetupHelper] This script must be on the same GameObject as GoapBehaviour!");
+                FarmLog.SystemError("GoapSetupHelper must be on the same GameObject as GoapBehaviour!");
                 return;
             }
 
@@ -26,7 +26,7 @@ namespace FarmingGoap
             if (farmerFactory == null)
             {
                 farmerFactory = gameObject.AddComponent<FarmerAgentTypeFactory>();
-                UnityEngine.Debug.Log("[GoapSetupHelper] Added FarmerAgentTypeFactory component");
+                FarmLog.System("GoapSetupHelper: Added FarmerAgentTypeFactory component");
             }
 
             // CRITICAL: Add factory to GoapBehaviour's serialized list if not already there
@@ -34,11 +34,7 @@ namespace FarmingGoap
             if (!goap.agentTypeConfigFactories.Contains(farmerFactory))
             {
                 goap.agentTypeConfigFactories.Add(farmerFactory);
-                UnityEngine.Debug.Log("[GoapSetupHelper] ✓ Registered FarmerAgentTypeFactory in GOAP factory list");
-            }
-            else
-            {
-                UnityEngine.Debug.Log("[GoapSetupHelper] ✓ FarmerAgentTypeFactory already in GOAP factory list");
+                FarmLog.System("GoapSetupHelper: Registered FarmerAgentTypeFactory in GOAP");
             }
         }
     }

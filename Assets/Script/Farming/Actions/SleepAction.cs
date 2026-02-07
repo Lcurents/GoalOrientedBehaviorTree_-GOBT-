@@ -17,7 +17,7 @@ namespace FarmingGoap.Actions
         public override void Start(IMonoAgent agent, Data data)
         {
             data.Timer = 0f;
-            UnityEngine.Debug.Log("[SleepAction] NPC mulai tidur...");
+            FarmLog.Action(agent.gameObject.name, $"Sleep START | Energy={data.Stats?.Energy:F0}");
         }
 
         public override IActionRunState Perform(IMonoAgent agent, Data data, IActionContext context)
@@ -34,7 +34,7 @@ namespace FarmingGoap.Actions
                 // Selesai jika energy > 80
                 if (stats.Energy >= 80f)
                 {
-                    UnityEngine.Debug.Log($"[SleepAction] Bangun! Energy: {stats.Energy}");
+                    FarmLog.Action(agent.gameObject.name, $"Sleep COMPLETE | Energy={stats.Energy:F0}");
                     return ActionRunState.Completed;
                 }
             }

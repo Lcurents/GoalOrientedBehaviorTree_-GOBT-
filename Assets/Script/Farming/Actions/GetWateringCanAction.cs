@@ -29,15 +29,10 @@ namespace FarmingGoap.Actions
                 var stats = agent.GetComponent<NPCStats>();
                 if (stats != null)
                 {
-                    // Only get watering can if we don't already have one (prevent excessive accumulation)
                     if (stats.HasWateringCan < 1)
                     {
                         stats.HasWateringCan++;
-                        UnityEngine.Debug.Log($"[GetWateringCanAction] Ambil ember! HasWateringCan: {stats.HasWateringCan}");
-                    }
-                    else
-                    {
-                        UnityEngine.Debug.Log($"[GetWateringCanAction] Sudah punya ember, skip. HasWateringCan: {stats.HasWateringCan}");
+                        FarmLog.Resource(agent.gameObject.name, $"GetWateringCan | WateringCan={stats.HasWateringCan}");
                     }
                 }
                 

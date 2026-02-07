@@ -7,6 +7,7 @@ using FarmingGoap.Goals;
 using FarmingGoap.Managers;
 using UnityEngine;
 using System.Linq;
+using System.Text;
 
 namespace FarmingGoap.BehaviorTree
 {
@@ -36,7 +37,7 @@ namespace FarmingGoap.BehaviorTree
         {
             if (actionProvider == null || stats == null)
             {
-                UnityEngine.Debug.LogError($"[{Owner.name}] SelectFarmingGoalMultiAgent: Missing components!");
+                FarmLog.SystemError($"{Owner.name} - SelectFarmingGoalMultiAgent: Missing GoapActionProvider or NPCStats!");
                 return TaskStatus.Failure;
             }
 
@@ -48,7 +49,7 @@ namespace FarmingGoap.BehaviorTree
 
             if (CropManager.Instance == null)
             {
-                UnityEngine.Debug.LogError($"[{Owner.name}] CropManager not found! Add CropManager to scene.");
+                FarmLog.SystemError("CropManager not found! Add CropManager to scene.");
                 return TaskStatus.Failure;
             }
 
@@ -58,19 +59,14 @@ namespace FarmingGoap.BehaviorTree
             if (allCrops.Length == 0)
             {
                 if (enableDebugLog.Value)
-                    UnityEngine.Debug.LogWarning($"[{Owner.name}] No crops found in scene");
+                    FarmLog.GoalWarn(Owner.name, "No crops found in scene");
                 return TaskStatus.Failure;
             }
             
             // DIAGNOSTIC: Log how many crops found
-            if (enableDebugLog.Value && Time.frameCount % 300 == 0) // Every 5 seconds
+            if (enableDebugLog.Value && Time.frameCount % 600 == 0) // Every 10 seconds
             {
-                var uniqueIDs = new System.Collections.Generic.HashSet<int>();
-                foreach (var c in allCrops)
-                {
-                    uniqueIDs.Add(c.GetInstanceID());
-                }
-                UnityEngine.Debug.Log($"[{Owner.name}] Found {allCrops.Length} crops (Unique IDs: {uniqueIDs.Count})");
+                FarmLog.System($"Scene has {allCrops.Length} crops active");
             }
 
             // Declare agentPos once at method scope to avoid CS0136 error
@@ -149,7 +145,7 @@ namespace FarmingGoap.BehaviorTree
                     // Log if goal changes
                     if ((lastSelectedGoal != goalForReserved || lastTargetCrop != currentReservedCrop) && enableDebugLog.Value)
                     {
-                        UnityEngine.Debug.Log($"[{Owner.name}] COMMITTED to reserved crop: {goalForReserved} → {currentReservedCrop.name} (U={utilityForReserved:F3}, Stage={stage})");
+                        FarmLog.Goal(Owner.name, $"CONTINUE reserved {currentReservedCrop.name} | {goalForReserved} | U={utilityForReserved:F3} | Stage={stage}");
                         lastSelectedGoal = goalForReserved;
                         lastTargetCrop = currentReservedCrop;
                     }
@@ -158,9 +154,9 @@ namespace FarmingGoap.BehaviorTree
                 }
                 else
                 {
-                    // Crop no longer needs work (shouldn't happen), release it
+                    // Crop no longer needs work, release it
                     if (enableDebugLog.Value)
-                        UnityEngine.Debug.Log($"[{Owner.name}] Reserved crop {currentReservedCrop.name} no longer needs work (Stage={stage}), releasing...");
+                        FarmLog.Goal(Owner.name, $"Reserved {currentReservedCrop.name} no longer needs work (Stage={stage}), releasing");
                     CropManager.Instance.ReleaseCrop(currentReservedCrop, Owner.gameObject);
                     lastTargetCrop = null;
                 }
@@ -175,15 +171,26 @@ namespace FarmingGoap.BehaviorTree
             CropBehaviour bestWateringCrop = null;
             CropBehaviour bestHarvestingCrop = null;
 
+            // Build utility evaluation table for logging
+            StringBuilder utilityTable = enableDebugLog.Value ? new StringBuilder() : null;
+
             foreach (var crop in allCrops)
             {
                 // Skip if reserved by another agent
-                if (!CropManager.Instance.IsCropAvailable(crop, Owner.gameObject))
+                bool available = CropManager.Instance.IsCropAvailable(crop, Owner.gameObject);
+                if (!available)
+                {
+                    if (utilityTable != null)
+                    {
+                        var owner = CropManager.Instance.GetReservedAgent(crop);
+                        utilityTable.AppendLine($"    {crop.name} (Stage={crop.GrowthStage}): RESERVED by {(owner != null ? owner.name : "?")}");
+                    }
                     continue;
+                }
 
                 int stage = crop.GrowthStage;
 
-                // Calculate base utilities dengan agent-specific weights
+                // Calculate base utilities with agent-specific weights
                 float plantU = UtilityCalculator.CalculatePlantingUtility(
                     stats.Energy, stats.Hunger, stage,
                     stats.WeightEnergy, stats.WeightHunger, stats.GoalBenefitPlanting);
@@ -198,14 +205,20 @@ namespace FarmingGoap.BehaviorTree
 
                 // Add distance bonus (nearby crops preferred for load balancing)
                 float distance = Vector3.Distance(agentPos, crop.transform.position);
-                float maxDistance = 50f; // Assumed max distance
+                float maxDistance = 50f;
                 float normalizedDist = Mathf.Clamp01(distance / maxDistance);
-                float distanceBonus = 0.15f * (1f - normalizedDist); // Max +0.15 bonus for nearest crop
+                float distanceBonus = 0.15f * (1f - normalizedDist);
 
                 // Apply distance bonus to valid utilities
                 if (plantU > -999f) plantU += distanceBonus;
                 if (waterU > -999f) waterU += distanceBonus;
                 if (harvestU > -999f) harvestU += distanceBonus;
+
+                // Log per-crop utility breakdown
+                if (utilityTable != null)
+                {
+                    utilityTable.AppendLine($"    {crop.name} (Stage={stage}, Dist={distance:F1}): Plant={FarmLog.U(plantU)} | Water={FarmLog.U(waterU)} | Harvest={FarmLog.U(harvestU)}");
+                }
 
                 // Track best crop for each goal type
                 if (plantU > bestPlantingUtility && plantU > -999f)
@@ -232,7 +245,7 @@ namespace FarmingGoap.BehaviorTree
 
             if (maxUtility <= -999f)
             {
-                // No valid goals - log why
+                // No valid goals - log diagnostic
                 if (enableDebugLog.Value && Time.frameCount % 120 == 0)
                 {
                     int totalCrops = allCrops.Length;
@@ -243,9 +256,9 @@ namespace FarmingGoap.BehaviorTree
                         if (!CropManager.Instance.IsCropAvailable(crop, Owner.gameObject))
                             reservedByOthers++;
                         else
-                            noValidStage++; // Available but utility = -999
+                            noValidStage++;
                     }
-                    UnityEngine.Debug.LogWarning($"[{Owner.name}] NO VALID FARMING GOAL: {totalCrops} crops total, {reservedByOthers} reserved by others, {noValidStage} available but no matching stage/utility");
+                    FarmLog.GoalWarn(Owner.name, $"NO VALID GOAL | Total={totalCrops}, ReservedByOthers={reservedByOthers}, NoMatchingStage={noValidStage}");
                 }
                 return TaskStatus.Failure;
             }
@@ -295,13 +308,16 @@ namespace FarmingGoap.BehaviorTree
                 actionProvider.RequestGoal<HarvestingGoal>();
             }
 
-            // Log only when goal OR target crop changes
+            // Log only when goal OR target crop changes (with full utility table)
             if ((lastSelectedGoal != selectedGoal || lastTargetCrop != targetCrop) && enableDebugLog.Value)
             {
-                if (lastTargetCrop != null && lastTargetCrop != targetCrop)
-                    UnityEngine.Debug.Log($"[{Owner.name}] NEW CROP: {selectedGoal} → {targetCrop.name} (U={maxUtility:F3}, was {lastTargetCrop.name})");
-                else
-                    UnityEngine.Debug.Log($"[{Owner.name}] Farming: {selectedGoal} → {targetCrop.name} (U={maxUtility:F3})");
+                // Print the full utility evaluation table
+                if (utilityTable != null && utilityTable.Length > 0)
+                {
+                    FarmLog.Utility(Owner.name, $"Evaluation (E={stats.Energy:F0}, H={stats.Hunger:F0}):\n{utilityTable}    >> BEST: {selectedGoal} -> {targetCrop.name} (U={maxUtility:F3})");
+                }
+
+                FarmLog.Goal(Owner.name, $"SELECT {selectedGoal} -> {targetCrop.name} | U={maxUtility:F3} | Stage={targetCrop.GrowthStage}");
                 lastSelectedGoal = selectedGoal;
                 lastTargetCrop = targetCrop;
             }

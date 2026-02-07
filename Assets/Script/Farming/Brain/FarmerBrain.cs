@@ -39,7 +39,7 @@ namespace FarmingGoap.Brain
             if (bt != null && useCodeBasedSelection)
             {
                 useCodeBasedSelection = false;
-                UnityEngine.Debug.Log($"[FarmerBrain] {gameObject.name}: BehaviorTree detected → forced to BT mode (useCodeBasedSelection=false)");
+                FarmLog.System($"{gameObject.name}: BehaviorTree detected, switched to BT mode");
             }
 
             // Assign AgentType in Awake - GoapBehaviour runs at -100 so it's already initialized
@@ -50,12 +50,11 @@ namespace FarmingGoap.Brain
                 {
                     this.provider.AgentType = this.goap.GetAgentType("FarmerAgent");
                     agentTypeAssigned = true;
-                    UnityEngine.Debug.Log($"[FarmerBrain] ✓ AgentType assigned to {gameObject.name}");
+                    FarmLog.System($"{gameObject.name}: AgentType 'FarmerAgent' assigned successfully");
                 }
                 catch (System.Exception e)
                 {
-                    UnityEngine.Debug.LogError($"[FarmerBrain] ✗ Failed to assign AgentType to {gameObject.name}: {e.Message}");
-                    UnityEngine.Debug.LogError($"[FarmerBrain] SOLUTION: Add 'GoapSetupHelper' + 'FarmerAgentTypeFactory' to '{goap.name}' GameObject!");
+                    FarmLog.SystemError($"{gameObject.name}: Failed to assign AgentType - {e.Message}");
                 }
             }
             else if (this.provider.AgentTypeBehaviour != null)
@@ -95,79 +94,58 @@ namespace FarmingGoap.Brain
             
             // ===== PRIORITY-BASED (Survival Needs) =====
             
-            // Priority 1: Eat (hanya jika punya food)
+            // Priority 1: Eat (only if has food)
             if (stats.Hunger > 70f && stats.FoodCount > 0)
             {
                 provider.RequestGoal<EatGoal>();
-                UnityEngine.Debug.Log("[Brain] Priority: EatGoal");
+                FarmLog.Goal(gameObject.name, $"SELECT EatGoal (Priority) | Hunger={stats.Hunger:F0}, Food={stats.FoodCount}");
                 return;
             }
 
-            // Priority 2: Sleep (jika energy rendah)
+            // Priority 2: Sleep (low energy)
             if (stats.Energy < 30f)
             {
                 provider.RequestGoal<SleepGoal>();
-                UnityEngine.Debug.Log("[Brain] Priority: SleepGoal");
+                FarmLog.Goal(gameObject.name, $"SELECT SleepGoal (Priority) | Energy={stats.Energy:F0}");
                 return;
             }
 
             // ===== UTILITY-BASED (Farming Goals) =====
             
-            // Hitung utility untuk 3 farming goals
             float plantingUtility = UtilityCalculator.CalculatePlantingUtility(
-                stats.Energy, 
-                stats.Hunger, 
-                crop.GrowthStage
-            );
+                stats.Energy, stats.Hunger, crop.GrowthStage);
             
             float wateringUtility = UtilityCalculator.CalculateWateringUtility(
-                stats.Energy, 
-                stats.Hunger, 
-                crop.GrowthStage
-            );
+                stats.Energy, stats.Hunger, crop.GrowthStage);
             
             float harvestingUtility = UtilityCalculator.CalculateHarvestingUtility(
-                stats.Energy, 
-                stats.Hunger, 
-                crop.GrowthStage
-            );
+                stats.Energy, stats.Hunger, crop.GrowthStage);
             
-            // Debug utility values
-            UnityEngine.Debug.Log(UtilityCalculator.GetUtilityDebugString(
-                plantingUtility, 
-                wateringUtility, 
-                harvestingUtility
-            ));
-            
-            // Pilih goal dengan utility tertinggi
             float maxUtility = Mathf.Max(plantingUtility, wateringUtility, harvestingUtility);
             
-            // Jika ada goal yang valid (utility > -999)
             if (maxUtility > -999f)
             {
                 if (maxUtility == harvestingUtility)
                 {
                     provider.RequestGoal<HarvestingGoal>();
-                    UnityEngine.Debug.Log($"[Brain] Utility: HarvestingGoal (U={maxUtility:F3})");
+                    FarmLog.Goal(gameObject.name, $"SELECT HarvestingGoal (Utility) | U={maxUtility:F3}");
                 }
                 else if (maxUtility == plantingUtility)
                 {
                     provider.RequestGoal<PlantingGoal>();
-                    UnityEngine.Debug.Log($"[Brain] Utility: PlantingGoal (U={maxUtility:F3})");
+                    FarmLog.Goal(gameObject.name, $"SELECT PlantingGoal (Utility) | U={maxUtility:F3}");
                 }
                 else if (maxUtility == wateringUtility)
                 {
                     provider.RequestGoal<WateringGoal>();
-                    UnityEngine.Debug.Log($"[Brain] Utility: WateringGoal (U={maxUtility:F3})");
+                    FarmLog.Goal(gameObject.name, $"SELECT WateringGoal (Utility) | U={maxUtility:F3}");
                 }
                 return;
             }
 
             // ===== FALLBACK =====
-            
-            // Tidak ada goal yang bisa dilakukan → Idle
             provider.RequestGoal<IdleGoal>();
-            UnityEngine.Debug.Log("[Brain] Fallback: IdleGoal");
+            FarmLog.Goal(gameObject.name, "SELECT IdleGoal (Fallback) | No valid farming goal");
         }
     }
 }

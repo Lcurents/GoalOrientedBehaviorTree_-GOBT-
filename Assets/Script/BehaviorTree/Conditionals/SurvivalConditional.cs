@@ -31,7 +31,7 @@ namespace FarmingGoap.BehaviorTree
         {
             if (stats == null)
             {
-                UnityEngine.Debug.LogError("[SurvivalConditional] NPCStats tidak ditemukan!");
+                FarmLog.SystemError($"{Owner.name} - SurvivalConditional: NPCStats not found!");
                 return TaskStatus.Failure;
             }
             

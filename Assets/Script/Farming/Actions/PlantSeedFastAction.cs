@@ -39,7 +39,7 @@ namespace FarmingGoap.Actions
                     if (reservedAgent == agent.gameObject)
                     {
                         data.Crop = crop;
-                        UnityEngine.Debug.Log($"[PlantFast] {agent.gameObject.name} verified reserved crop: {crop.name}");
+                        FarmLog.Action(agent.gameObject.name, $"PlantFast START | Target={crop.name} (reserved, verified)");
                         break;
                     }
                     
@@ -58,13 +58,13 @@ namespace FarmingGoap.Actions
                 if (CropManager.Instance.IsReservedBy(bestFallback, agent.gameObject))
                 {
                     data.Crop = bestFallback;
-                    UnityEngine.Debug.LogWarning($"[PlantFast] {agent.gameObject.name} fallback: claimed free crop {bestFallback.name}");
+                    FarmLog.ActionWarn(agent.gameObject.name, $"PlantFast FALLBACK | Claimed free crop {bestFallback.name}");
                 }
             }
             
             if (data.Crop == null)
             {
-                UnityEngine.Debug.LogWarning($"[PlantFast] {agent.gameObject.name} no plantable crop at target - action will stop");
+                FarmLog.ActionWarn(agent.gameObject.name, "PlantFast ABORTED | No plantable crop at target");
             }
         }
 
@@ -85,8 +85,8 @@ namespace FarmingGoap.Actions
                 if (stats != null)
                 {
                     stats.HasSeed--;
-                    stats.HasShovel--; // Consume shovel
-                    UnityEngine.Debug.Log($"[PlantSeedFast] Tanam dengan sekop (2s)! Seed={stats.HasSeed}, Shovel={stats.HasShovel}");
+                    stats.HasShovel--;
+                    FarmLog.Resource(agent.gameObject.name, $"PlantFast consumed | Seed={stats.HasSeed}, Shovel={stats.HasShovel}");
                 }
 
                 data.ActionCompleted = true; // Mark as successfully completed
@@ -98,12 +98,12 @@ namespace FarmingGoap.Actions
 
         public override void End(IMonoAgent agent, Data data)
         {
-            // Release crop after planting completes - crop is now available for ANY farmer
-            // Next goal cycle: farmers re-evaluate and bid for available crops
-            if (data.Crop != null && data.Agent != null && CropManager.Instance != null)
+            // Only release on successful completion (ActionCompleted=true)
+            // Interrupted case is handled by Stop()
+            if (data.ActionCompleted && data.Crop != null && data.Agent != null && CropManager.Instance != null)
             {
                 CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
-                UnityEngine.Debug.Log($"[PlantFast] {data.Agent.name} finished planting {data.Crop.name}, RELEASED");
+                FarmLog.Action(data.Agent.name, $"PlantFast COMPLETE | {data.Crop.name} planted (2s) and released");
             }
         }
 
@@ -114,7 +114,7 @@ namespace FarmingGoap.Actions
             if (!data.ActionCompleted && data.Crop != null && data.Agent != null && CropManager.Instance != null)
             {
                 CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
-                UnityEngine.Debug.Log($"[PlantFast] {data.Agent.name} INTERRUPTED, released {data.Crop.name}");
+                FarmLog.Action(data.Agent.name, $"PlantFast INTERRUPTED | {data.Crop.name} released");
             }
         }
 

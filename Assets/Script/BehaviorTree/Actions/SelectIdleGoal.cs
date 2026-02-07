@@ -24,7 +24,7 @@ namespace FarmingGoap.BehaviorTree
             
             if (enableDebugLog.Value && lastLog != "Idle")
             {
-                UnityEngine.Debug.Log("[BT] Idle Planner: No goal selected, agent idling");
+                FarmLog.Goal("Agent", "Idle (no goal selected)");
                 lastLog = "Idle";
             }
             

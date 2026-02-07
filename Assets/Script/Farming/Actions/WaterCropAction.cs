@@ -35,7 +35,7 @@ namespace FarmingGoap.Actions
                     if (reservedAgent == agent.gameObject)
                     {
                         data.Crop = crop;
-                        UnityEngine.Debug.Log($"[Water] {agent.gameObject.name} verified reserved crop: {crop.name}");
+                        FarmLog.Action(agent.gameObject.name, $"WaterCrop START | Target={crop.name} (reserved, verified)");
                         break;
                     }
                     
@@ -54,13 +54,13 @@ namespace FarmingGoap.Actions
                 if (CropManager.Instance.IsReservedBy(bestFallback, agent.gameObject))
                 {
                     data.Crop = bestFallback;
-                    UnityEngine.Debug.LogWarning($"[Water] {agent.gameObject.name} fallback: claimed free crop {bestFallback.name}");
+                    FarmLog.ActionWarn(agent.gameObject.name, $"WaterCrop FALLBACK | Claimed free crop {bestFallback.name}");
                 }
             }
             
             if (data.Crop == null)
             {
-                UnityEngine.Debug.LogWarning($"[Water] {agent.gameObject.name} no waterable crop at target - action will stop");
+                FarmLog.ActionWarn(agent.gameObject.name, "WaterCrop ABORTED | No waterable crop at target");
             }
         }
 
@@ -82,8 +82,8 @@ namespace FarmingGoap.Actions
                     stats.HasWateringCan--;
                 }
 
-                data.ActionCompleted = true; // Mark as successfully completed
-                UnityEngine.Debug.Log($"[WaterCropAction] Tanaman disiram! Stage: {data.Crop.GrowthStage}");
+                data.ActionCompleted = true;
+                FarmLog.Action(agent.gameObject.name, $"WaterCrop PERFORM | {data.Crop.name} watered -> Stage={data.Crop.GrowthStage}");
                 return ActionRunState.Completed;
             }
 
@@ -92,11 +92,12 @@ namespace FarmingGoap.Actions
 
         public override void End(IMonoAgent agent, Data data)
         {
-            // Release crop after watering completes - crop is now available for ANY farmer
-            if (data.Crop != null && data.Agent != null && CropManager.Instance != null)
+            // Only release on successful completion (ActionCompleted=true)
+            // Interrupted case is handled by Stop()
+            if (data.ActionCompleted && data.Crop != null && data.Agent != null && CropManager.Instance != null)
             {
                 CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
-                UnityEngine.Debug.Log($"[Water] {data.Agent.name} finished watering {data.Crop.name}, RELEASED");
+                FarmLog.Action(data.Agent.name, $"WaterCrop COMPLETE | {data.Crop.name} watered and released");
             }
         }
 
@@ -107,7 +108,7 @@ namespace FarmingGoap.Actions
             if (!data.ActionCompleted && data.Crop != null && data.Agent != null && CropManager.Instance != null)
             {
                 CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
-                UnityEngine.Debug.Log($"[Water] {data.Agent.name} INTERRUPTED, released {data.Crop.name}");
+                FarmLog.Action(data.Agent.name, $"WaterCrop INTERRUPTED | {data.Crop.name} released");
             }
         }
 

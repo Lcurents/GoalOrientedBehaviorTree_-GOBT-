@@ -36,7 +36,7 @@ namespace FarmingGoap.Sensors.Target
         {
             if (crops == null || crops.Length == 0)
             {
-                UnityEngine.Debug.LogWarning("[CropTargetSensor] No crops found in scene!");
+                FarmLog.SystemWarn("CropTargetSensor: No crops found in scene!");
                 return null;
             }
 
@@ -54,7 +54,7 @@ namespace FarmingGoap.Sensors.Target
                     {
                         currentlyOwnedCrop = crop;
                         if (enableDebugLog)
-                            UnityEngine.Debug.Log($"[Sensor] {agentObject.name} → {crop.name} (reserved)");
+                            FarmLog.Sensor(agentObject.name, $"Target={crop.name} (reserved)");
                         break;
                     }
                 }
@@ -71,7 +71,7 @@ namespace FarmingGoap.Sensors.Target
             // Only log ONCE per agent to avoid spam - resets when they get a crop
             if (enableDebugLog && !nullWarned.Contains(agentObject))
             {
-                UnityEngine.Debug.LogWarning($"[Sensor] {agentObject.name} → NULL (no reserved crop - waiting for next auction cycle)");
+                FarmLog.Sensor(agentObject.name, "Target=NULL (no reserved crop, waiting for auction)");
                 nullWarned.Add(agentObject);
             }
             return null;

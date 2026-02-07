@@ -39,7 +39,7 @@ namespace FarmingGoap.BehaviorTree
         {
             if (actionProvider == null || stats == null)
             {
-                UnityEngine.Debug.LogError("[SelectSurvivalGoal] GoapActionProvider atau NPCStats tidak ditemukan!");
+                FarmLog.SystemError($"{Owner.name} - SelectSurvivalGoal: Missing GoapActionProvider or NPCStats!");
                 return TaskStatus.Failure;
             }
             
@@ -50,7 +50,7 @@ namespace FarmingGoap.BehaviorTree
                 if (lastSelectedGoal != "EatGoal")
                 {
                     if (enableDebugLog.Value)
-                        UnityEngine.Debug.Log($"[BT] Survival Planner: EatGoal selected (Hunger={stats.Hunger})");
+                        FarmLog.Goal(Owner.name, $"SELECT EatGoal | Hunger={stats.Hunger:F0}, Food={stats.FoodCount}");
                     lastSelectedGoal = "EatGoal";
                 }
                 return TaskStatus.Success;
@@ -63,7 +63,7 @@ namespace FarmingGoap.BehaviorTree
                 if (lastSelectedGoal != "SleepGoal")
                 {
                     if (enableDebugLog.Value)
-                        UnityEngine.Debug.Log($"[BT] Survival Planner: SleepGoal selected (Energy={stats.Energy})");
+                        FarmLog.Goal(Owner.name, $"SELECT SleepGoal | Energy={stats.Energy:F0}");
                     lastSelectedGoal = "SleepGoal";
                 }
                 return TaskStatus.Success;
