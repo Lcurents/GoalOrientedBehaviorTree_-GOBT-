@@ -33,6 +33,15 @@ namespace FarmingGoap.Brain
             // Link AgentBehaviour dengan GoapActionProvider (WAJIB!)
             this.agent.ActionProvider = this.provider;
 
+            // AUTO-DETECT: If BehaviorTree exists, force BT mode
+            // Code-based mode doesn't use CropManager/auction → breaks multi-agent
+            var bt = GetComponent<BehaviorDesigner.Runtime.BehaviorTree>();
+            if (bt != null && useCodeBasedSelection)
+            {
+                useCodeBasedSelection = false;
+                UnityEngine.Debug.Log($"[FarmerBrain] {gameObject.name}: BehaviorTree detected → forced to BT mode (useCodeBasedSelection=false)");
+            }
+
             // Assign AgentType in Awake - GoapBehaviour runs at -100 so it's already initialized
             // GoapSetupHelper runs at -101 ensuring factory is registered before GoapBehaviour
             if (this.provider.AgentTypeBehaviour == null && this.goap != null)

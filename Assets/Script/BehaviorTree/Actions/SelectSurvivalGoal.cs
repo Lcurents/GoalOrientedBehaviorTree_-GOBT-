@@ -69,10 +69,11 @@ namespace FarmingGoap.BehaviorTree
                 return TaskStatus.Success;
             }
             
-            // Tidak ada goal survival yang cocok
-            // (Edge case: Hunger > 70 tapi FoodCount = 0, atau kondisi lain)
-            // Return Success agar Selector lanjut ke Farming branch
-            return TaskStatus.Success;
+            // Tidak ada goal survival yang bisa dijalankan
+            // Return FAILURE so BT Selector continues to farming branch
+            // (Edge case: Hunger > 70 tapi FoodCount = 0 → can't eat, don't block farming)
+            lastSelectedGoal = "";
+            return TaskStatus.Failure;
         }
     }
 }

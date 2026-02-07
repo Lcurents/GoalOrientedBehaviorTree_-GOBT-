@@ -36,7 +36,7 @@ namespace FarmingGoap.BehaviorTree
             }
             
             // Cek kondisi survival
-            bool needsFood = stats.Hunger > hungerThreshold.Value;
+            bool needsFood = stats.Hunger > hungerThreshold.Value && stats.FoodCount > 0; // Only trigger if agent CAN eat
             bool needsSleep = stats.Energy < energyThreshold.Value;
             
             if (needsFood || needsSleep)

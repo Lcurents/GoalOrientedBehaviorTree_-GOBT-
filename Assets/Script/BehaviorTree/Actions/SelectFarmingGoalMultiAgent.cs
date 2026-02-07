@@ -232,7 +232,21 @@ namespace FarmingGoap.BehaviorTree
 
             if (maxUtility <= -999f)
             {
-                // No valid goals
+                // No valid goals - log why
+                if (enableDebugLog.Value && Time.frameCount % 120 == 0)
+                {
+                    int totalCrops = allCrops.Length;
+                    int reservedByOthers = 0;
+                    int noValidStage = 0;
+                    foreach (var crop in allCrops)
+                    {
+                        if (!CropManager.Instance.IsCropAvailable(crop, Owner.gameObject))
+                            reservedByOthers++;
+                        else
+                            noValidStage++; // Available but utility = -999
+                    }
+                    UnityEngine.Debug.LogWarning($"[{Owner.name}] NO VALID FARMING GOAL: {totalCrops} crops total, {reservedByOthers} reserved by others, {noValidStage} available but no matching stage/utility");
+                }
                 return TaskStatus.Failure;
             }
 
