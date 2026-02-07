@@ -7,7 +7,10 @@ namespace FarmingGoap.Behaviours
         [Header("Stats")]
         [SerializeField] private float hunger = 0f; // 0-100
         [SerializeField] private float energy = 100f; // 0-100
-        [SerializeField] private int foodCount = 0;
+        
+        [Header("Shared Resources")]
+        [SerializeField] private int sharedFoodDisplay = 0; // Inspector display only (read from static)
+        private static int sharedFoodCount = 0; // Shared across ALL agents
 
         [Header("Inventory - REDESIGNED")]
         [SerializeField] private int hasSeed = 0; // Jumlah bibit
@@ -38,7 +41,7 @@ namespace FarmingGoap.Behaviours
 
         public float Hunger => hunger;
         public float Energy => energy;
-        public int FoodCount => foodCount;
+        public int FoodCount => sharedFoodCount;
         
         // Inventory properties
         public int HasSeed { get => hasSeed; set => hasSeed = value; }
@@ -91,12 +94,29 @@ namespace FarmingGoap.Behaviours
 
         public void AddFood(int amount)
         {
-            foodCount += amount;
+            sharedFoodCount += amount;
+            UnityEngine.Debug.Log($"[{gameObject.name}] Added {amount} food → shared total: {sharedFoodCount}");
         }
 
         public void RemoveFood(int amount)
         {
-            foodCount = Mathf.Max(0, foodCount - amount);
+            sharedFoodCount = Mathf.Max(0, sharedFoodCount - amount);
+        }
+        
+        /// <summary>
+        /// Reset shared food saat scene reload (karena static tidak reset otomatis)
+        /// </summary>
+        private void OnDestroy()
+        {
+            // Only reset when last NPCStats is destroyed
+            if (FindObjectsByType<NPCStats>(FindObjectsSortMode.None).Length <= 1)
+                sharedFoodCount = 0;
+        }
+        
+        private void LateUpdate()
+        {
+            // Sync Inspector display
+            sharedFoodDisplay = sharedFoodCount;
         }
     }
 }
