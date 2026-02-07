@@ -28,12 +28,13 @@ namespace FarmingGoap.Actions
             var targetPos = data.Target.Position;
             var nearbyColliders = Physics2D.OverlapCircleAll(targetPos, 1f);
             
+            CropBehaviour bestFallback = null;
+            
             foreach (var col in nearbyColliders)
             {
                 var crop = col.GetComponent<CropBehaviour>();
                 if (crop != null)
                 {
-                    // CRITICAL: Verify this crop is reserved by THIS agent
                     var reservedAgent = CropManager.Instance?.GetReservedAgent(crop);
                     if (reservedAgent == agent.gameObject)
                     {
@@ -41,16 +42,29 @@ namespace FarmingGoap.Actions
                         UnityEngine.Debug.Log($"[PlantSlow] {agent.gameObject.name} verified reserved crop: {crop.name}");
                         break;
                     }
-                    else
+                    
+                    // Track unreserved empty crop as fallback
+                    if (reservedAgent == null && crop.GrowthStage == 0)
                     {
-                        UnityEngine.Debug.LogWarning($"[PlantSlow] {agent.gameObject.name} found {crop.name} but it's reserved by {reservedAgent?.name ?? "NONE"}! Ignoring.");
+                        bestFallback = crop;
                     }
+                }
+            }
+            
+            // Fallback: claim free empty crop if reservation was lost
+            if (data.Crop == null && bestFallback != null && CropManager.Instance != null)
+            {
+                CropManager.Instance.SubmitBid(bestFallback, agent.gameObject, 1f, "Planting");
+                if (CropManager.Instance.IsReservedBy(bestFallback, agent.gameObject))
+                {
+                    data.Crop = bestFallback;
+                    UnityEngine.Debug.LogWarning($"[PlantSlow] {agent.gameObject.name} fallback: claimed free crop {bestFallback.name}");
                 }
             }
             
             if (data.Crop == null)
             {
-                UnityEngine.Debug.LogError($"[PlantSlow] {agent.gameObject.name} couldn't find their reserved crop at target position!");
+                UnityEngine.Debug.LogWarning($"[PlantSlow] {agent.gameObject.name} no plantable crop at target - action will stop");
             }
         }
 
@@ -83,10 +97,11 @@ namespace FarmingGoap.Actions
 
         public override void End(IMonoAgent agent, Data data)
         {
-            // Keep reservation for next goal on same crop
-            if (data.Crop != null && data.Agent != null)
+            // Release crop after planting completes - crop is now available for ANY farmer
+            if (data.Crop != null && data.Agent != null && CropManager.Instance != null)
             {
-                UnityEngine.Debug.Log($"[PlantSlow] {data.Agent.name} finished planting {data.Crop.name} (keeping reservation)");
+                CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
+                UnityEngine.Debug.Log($"[PlantSlow] {data.Agent.name} finished planting {data.Crop.name}, RELEASED");
             }
         }
 

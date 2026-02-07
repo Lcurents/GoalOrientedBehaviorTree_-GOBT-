@@ -113,6 +113,15 @@ namespace FarmingGoap.Managers
         {
             if (crop == null || agent == null) return;
 
+            // RULE: Can't bid on crop already reserved by ANOTHER agent
+            // This ensures first-come-first-served: existing reservations are never overridden
+            if (cropReservations.ContainsKey(crop) && cropReservations[crop] != agent)
+            {
+                if (enableDebugLog)
+                    UnityEngine.Debug.Log($"[Bid] {agent.name} → {crop.name} REJECTED (reserved by {cropReservations[crop].name})");
+                return;
+            }
+
             if (!pendingBids.ContainsKey(crop))
             {
                 pendingBids[crop] = new List<CropBid>();
@@ -251,6 +260,15 @@ namespace FarmingGoap.Managers
             if (cropReservations.ContainsKey(crop))
                 return cropReservations[crop];
             return null;
+        }
+
+        /// <summary>
+        /// Check if crop is reserved by specific agent
+        /// </summary>
+        public bool IsReservedBy(CropBehaviour crop, GameObject agent)
+        {
+            if (crop == null || agent == null) return false;
+            return cropReservations.ContainsKey(crop) && cropReservations[crop] == agent;
         }
 
         private void Update()

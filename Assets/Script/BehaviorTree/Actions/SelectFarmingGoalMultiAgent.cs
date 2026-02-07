@@ -256,23 +256,15 @@ namespace FarmingGoap.BehaviorTree
                 targetCrop = bestHarvestingCrop;
             }
 
-            // Only submit bid if target changed (avoid spamming bids for already-owned crop)
-            bool targetChanged = (lastTargetCrop != targetCrop);
+            // Submit bid if crop is NOT already reserved by this agent
+            // After each goal completes, crops are released - agent must re-bid to reclaim
+            // Auction only happens when multiple agents bid on the same FREE crop simultaneously
+            // Existing reservations are NEVER overridden (first-come-first-served)
+            bool alreadyMine = CropManager.Instance.IsReservedBy(targetCrop, Owner.gameObject);
             
-            // DON'T release old crop here - this was causing agents to abandon crops mid-cycle!
-            // Crops are only released when:
-            // 1. Agent explicitly switches to Survival/other non-farming goal (handled in Action.Stop())
-            // 2. Crop is fully harvested (handled in HarvestCropAction.End())
-            // 3. Crop determined to no longer need work (handled above)
-            
-            if (targetChanged)
+            if (!alreadyMine)
             {
-                if (selectedGoal == "PlantingGoal")
-                    CropManager.Instance.SubmitBid(targetCrop, Owner.gameObject, maxUtility, "Planting");
-                else if (selectedGoal == "WateringGoal")
-                    CropManager.Instance.SubmitBid(targetCrop, Owner.gameObject, maxUtility, "Watering");
-                else
-                    CropManager.Instance.SubmitBid(targetCrop, Owner.gameObject, maxUtility, "Harvesting");
+                CropManager.Instance.SubmitBid(targetCrop, Owner.gameObject, maxUtility, selectedGoal);
             }
 
             // Request goal (auction akan determine siapa yang benar-benar dapat crop)
@@ -292,7 +284,7 @@ namespace FarmingGoap.BehaviorTree
             // Log only when goal OR target crop changes
             if ((lastSelectedGoal != selectedGoal || lastTargetCrop != targetCrop) && enableDebugLog.Value)
             {
-                if (targetChanged && lastTargetCrop != null)
+                if (lastTargetCrop != null && lastTargetCrop != targetCrop)
                     UnityEngine.Debug.Log($"[{Owner.name}] NEW CROP: {selectedGoal} → {targetCrop.name} (U={maxUtility:F3}, was {lastTargetCrop.name})");
                 else
                     UnityEngine.Debug.Log($"[{Owner.name}] Farming: {selectedGoal} → {targetCrop.name} (U={maxUtility:F3})");

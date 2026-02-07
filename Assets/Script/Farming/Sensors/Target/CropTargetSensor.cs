@@ -13,6 +13,9 @@ namespace FarmingGoap.Sensors.Target
     {
         private CropBehaviour[] crops;
         [SerializeField] private bool enableDebugLog = true; // Enable by default for multi-agent debugging
+        
+        // Track which agents already got the "no reserved crop" warning to avoid spam
+        private System.Collections.Generic.HashSet<GameObject> nullWarned = new System.Collections.Generic.HashSet<GameObject>();
 
         public override void Created()
         {
@@ -60,12 +63,17 @@ namespace FarmingGoap.Sensors.Target
             // Return reserved crop (or null if no reservation)
             if (currentlyOwnedCrop != null)
             {
+                nullWarned.Remove(agentObject); // Reset so we log again if they lose the crop
                 return new TransformTarget(currentlyOwnedCrop.transform);
             }
 
             // No reserved crop = agent can't act yet (needs to bid in auction first)
-            if (enableDebugLog)
-                UnityEngine.Debug.LogWarning($"[Sensor] {agentObject.name} → NULL (no reserved crop - wait for auction)");
+            // Only log ONCE per agent to avoid spam - resets when they get a crop
+            if (enableDebugLog && !nullWarned.Contains(agentObject))
+            {
+                UnityEngine.Debug.LogWarning($"[Sensor] {agentObject.name} → NULL (no reserved crop - waiting for next auction cycle)");
+                nullWarned.Add(agentObject);
+            }
             return null;
         }
     }
