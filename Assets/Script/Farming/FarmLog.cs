@@ -18,6 +18,17 @@ namespace FarmingGoap
     /// </summary>
     public static class FarmLog
     {
+        // ──────────────────── LOG TOGGLES ────────────────────
+        public static bool EnableUtility = false;
+        public static bool EnableAuction = true;
+        public static bool EnableGoal = true;
+        public static bool EnableAction = true;
+        public static bool EnableCrop = true;
+        public static bool EnableResource = true;
+        public static bool EnableSensor = false;
+        public static bool EnableSystem = false;
+        public static bool EnableWarnings = true;
+
         // ──────────────────────── TIME ────────────────────────
         private static string T
         {
@@ -35,48 +46,56 @@ namespace FarmingGoap
         /// <summary>Utility calculation details (per crop evaluation)</summary>
         public static void Utility(string agent, string message)
         {
+            if (!EnableUtility) return;
             UnityEngine.Debug.Log($"[UTILITY] T={T} | {agent} | {message}");
         }
 
         /// <summary>Auction bids and results (winner/loser)</summary>
         public static void Auction(string message)
         {
+            if (!EnableAuction) return;
             UnityEngine.Debug.Log($"[AUCTION] T={T} | {message}");
         }
 
         /// <summary>Goal selection and transitions</summary>
         public static void Goal(string agent, string message)
         {
+            if (!EnableGoal) return;
             UnityEngine.Debug.Log($"[GOAL] T={T} | {agent} | {message}");
         }
 
         /// <summary>Action lifecycle (start, complete, interrupted)</summary>
         public static void Action(string agent, string message)
         {
+            if (!EnableAction) return;
             UnityEngine.Debug.Log($"[ACTION] T={T} | {agent} | {message}");
         }
 
         /// <summary>Crop state changes</summary>
         public static void Crop(string crop, string message)
         {
+            if (!EnableCrop) return;
             UnityEngine.Debug.Log($"[CROP] T={T} | {crop} | {message}");
         }
 
         /// <summary>Inventory and shared resource changes</summary>
         public static void Resource(string agent, string message)
         {
+            if (!EnableResource) return;
             UnityEngine.Debug.Log($"[RESOURCE] T={T} | {agent} | {message}");
         }
 
         /// <summary>Target sensor readings</summary>
         public static void Sensor(string agent, string message)
         {
+            if (!EnableSensor) return;
             UnityEngine.Debug.Log($"[SENSOR] T={T} | {agent} | {message}");
         }
 
         /// <summary>System initialization and diagnostics</summary>
         public static void System(string message)
         {
+            if (!EnableSystem) return;
             UnityEngine.Debug.Log($"[SYSTEM] T={T} | {message}");
         }
 
@@ -84,21 +103,25 @@ namespace FarmingGoap
 
         public static void AuctionWarn(string message)
         {
+            if (!EnableWarnings || !EnableAuction) return;
             UnityEngine.Debug.LogWarning($"[AUCTION] T={T} | {message}");
         }
 
         public static void ActionWarn(string agent, string message)
         {
+            if (!EnableWarnings || !EnableAction) return;
             UnityEngine.Debug.LogWarning($"[ACTION] T={T} | {agent} | {message}");
         }
 
         public static void GoalWarn(string agent, string message)
         {
+            if (!EnableWarnings || !EnableGoal) return;
             UnityEngine.Debug.LogWarning($"[GOAL] T={T} | {agent} | {message}");
         }
 
         public static void SystemWarn(string message)
         {
+            if (!EnableWarnings || !EnableSystem) return;
             UnityEngine.Debug.LogWarning($"[SYSTEM] T={T} | {message}");
         }
 

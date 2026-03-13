@@ -34,8 +34,8 @@ namespace FarmingGoap.BehaviorTree
                 return TaskStatus.Success;
             }
             
-            // Tidak ada crop, tapi masih bisa plant
-            return TaskStatus.Success;
+            // Tidak ada crop di scene
+            return TaskStatus.Failure;
         }
     }
 }

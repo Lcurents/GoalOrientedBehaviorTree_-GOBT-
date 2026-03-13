@@ -19,48 +19,23 @@ namespace FarmingGoap.Actions
         {
             data.Timer = 4f; // 4 detik untuk panen
             data.Agent = agent.gameObject; // Store agent reference
-            
-            // Find crop at target position
-            var targetPos = data.Target.Position;
-            var nearbyColliders = UnityEngine.Physics2D.OverlapCircleAll(targetPos, 1f);
-            
-            CropBehaviour bestFallback = null;
-            
-            foreach (var col in nearbyColliders)
+
+            bool usedFallback;
+            data.Crop = CropTargeting.ResolveCropTarget(
+                agent,
+                data.Target,
+                crop => crop.GrowthStage == 3,
+                "Harvesting",
+                out usedFallback);
+
+            if (data.Crop != null)
             {
-                var crop = col.GetComponent<CropBehaviour>();
-                if (crop != null)
-                {
-                    // Verify this crop is reserved by THIS agent
-                    var reservedAgent = CropManager.Instance?.GetReservedAgent(crop);
-                    if (reservedAgent == agent.gameObject)
-                    {
-                        data.Crop = crop;
-                        FarmLog.Action(agent.gameObject.name, $"HarvestCrop START | Target={crop.name} (reserved, verified)");
-                        break;
-                    }
-                    
-                    // Track unreserved crop at harvest stage as fallback
-                    if (reservedAgent == null && crop.GrowthStage == 3)
-                    {
-                        bestFallback = crop;
-                    }
-                }
+                if (usedFallback)
+                    FarmLog.ActionWarn(agent.gameObject.name, $"HarvestCrop FALLBACK | Claimed free crop {data.Crop.name}");
+                else
+                    FarmLog.Action(agent.gameObject.name, $"HarvestCrop START | Target={data.Crop.name} (reserved, verified)");
             }
-            
-            // Fallback: if no reserved crop found but there's a free harvestable crop nearby,
-            // reserve it and proceed (handles edge case where reservation was lost between frames)
-            if (data.Crop == null && bestFallback != null && CropManager.Instance != null)
-            {
-                CropManager.Instance.SubmitBid(bestFallback, agent.gameObject, 1f, "Harvesting");
-                if (CropManager.Instance.IsReservedBy(bestFallback, agent.gameObject))
-                {
-                    data.Crop = bestFallback;
-                    FarmLog.ActionWarn(agent.gameObject.name, $"HarvestCrop FALLBACK | Claimed free crop {bestFallback.name}");
-                }
-            }
-            
-            if (data.Crop == null)
+            else
             {
                 FarmLog.ActionWarn(agent.gameObject.name, "HarvestCrop ABORTED | No harvestable crop at target");
             }

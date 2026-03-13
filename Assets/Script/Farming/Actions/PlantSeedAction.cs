@@ -3,6 +3,7 @@ using CrashKonijn.Agent.Runtime;
 using CrashKonijn.Goap.Core;
 using CrashKonijn.Goap.Runtime;
 using FarmingGoap.Behaviours;
+using FarmingGoap.Managers;
 using UnityEngine;
 
 namespace FarmingGoap.Actions
@@ -28,33 +29,26 @@ namespace FarmingGoap.Actions
                 data.Timer = 5f; // Tanpa sekop: lambat (5 detik)
             }
 
-            // Find crop at target position
-            var targetPos = data.Target.Position;
-            var nearbyColliders = Physics2D.OverlapCircleAll(targetPos, 1f);
-            
-            foreach (var col in nearbyColliders)
+            data.Agent = agent.gameObject;
+
+            bool usedFallback;
+            data.Crop = CropTargeting.ResolveCropTarget(
+                agent,
+                data.Target,
+                crop => crop.GrowthStage == 0,
+                "Planting",
+                out usedFallback);
+
+            if (data.Crop != null)
             {
-                var crop = col.GetComponent<CropBehaviour>();
-                if (crop != null)
-                {
-                    // CRITICAL: Verify this crop is reserved by THIS agent
-                    var reservedAgent = FarmingGoap.Managers.CropManager.Instance?.GetReservedAgent(crop);
-                    if (reservedAgent == agent.gameObject)
-                    {
-                        data.Crop = crop;
-                        UnityEngine.Debug.Log($"[PlantSeed] {agent.gameObject.name} verified reserved crop: {crop.name}");
-                        break;
-                    }
-                    else
-                    {
-                        UnityEngine.Debug.LogWarning($"[PlantSeed] {agent.gameObject.name} found {crop.name} but it's reserved by {reservedAgent?.name ?? "NONE"}! Ignoring.");
-                    }
-                }
+                if (usedFallback)
+                    FarmLog.ActionWarn(agent.gameObject.name, $"PlantSeed FALLBACK | Claimed free crop {data.Crop.name}");
+                else
+                    FarmLog.Action(agent.gameObject.name, $"PlantSeed START | Target={data.Crop.name} (reserved, verified)");
             }
-            
-            if (data.Crop == null)
+            else
             {
-                UnityEngine.Debug.LogError($"[PlantSeed] {agent.gameObject.name} couldn't find their reserved crop at target position!");
+                FarmLog.ActionWarn(agent.gameObject.name, "PlantSeed ABORTED | No plantable crop at target");
             }
         }
 
@@ -70,15 +64,11 @@ namespace FarmingGoap.Actions
                 // Tanam bibit
                 data.Crop.Plant();
                 
-                // Consume bibit dan sekop
+                // Consume bibit only (shovel is returned after planting)
                 var stats = agent.GetComponent<NPCStats>();
                 if (stats != null)
                 {
                     stats.HasSeed--;
-                    if (stats.HasShovel > 0)
-                    {
-                        stats.HasShovel--; // Sekop habis dipakai
-                    }
                 }
 
                 data.ActionCompleted = true; // Mark as successfully completed
@@ -90,6 +80,34 @@ namespace FarmingGoap.Actions
 
         public override void End(IMonoAgent agent, Data data)
         {
+            if (data.ActionCompleted && data.Crop != null && data.Agent != null && CropManager.Instance != null)
+            {
+                CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
+                FarmLog.Action(data.Agent.name, $"PlantSeed COMPLETE | {data.Crop.name} planted and released");
+            }
+
+            if (data.ActionCompleted)
+            {
+                var stats = agent.GetComponent<NPCStats>();
+                if (stats != null && stats.HasShovel > 0 && ShovelStorage.Instance != null && ShovelStorage.Instance.IsReservedBy(agent.gameObject))
+                {
+                    stats.HasShovel = Mathf.Max(0, stats.HasShovel - 1);
+                    ShovelStorage.Instance.Return(agent.gameObject);
+                    var carrier = agent.GetComponent<ShovelCarrier>();
+                    if (carrier != null)
+                        carrier.SetHeld(false);
+                    FarmLog.Resource(agent.gameObject.name, $"PlantSeed returned shovel | Shovel={stats.HasShovel}");
+                }
+            }
+        }
+
+        public override void Stop(IMonoAgent agent, Data data)
+        {
+            if (!data.ActionCompleted && data.Crop != null && data.Agent != null && CropManager.Instance != null)
+            {
+                CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
+                FarmLog.Action(data.Agent.name, $"PlantSeed INTERRUPTED | {data.Crop.name} released");
+            }
         }
 
         public class Data : IActionData
@@ -98,6 +116,7 @@ namespace FarmingGoap.Actions
             public float Timer;
             public CropBehaviour Crop;
             public bool ActionCompleted; // Track if action finished successfully
+            public GameObject Agent; // For crop release
         }
     }
 }

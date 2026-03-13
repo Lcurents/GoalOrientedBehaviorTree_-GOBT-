@@ -19,46 +19,23 @@ namespace FarmingGoap.Actions
         {
             data.Timer = 3f; // 3 detik untuk siram
             data.Agent = agent.gameObject; // Store agent reference
-            
-            // Find crop at target position
-            var targetPos = data.Target.Position;
-            var nearbyColliders = UnityEngine.Physics2D.OverlapCircleAll(targetPos, 1f);
-            
-            CropBehaviour bestFallback = null;
-            
-            foreach (var col in nearbyColliders)
+
+            bool usedFallback;
+            data.Crop = CropTargeting.ResolveCropTarget(
+                agent,
+                data.Target,
+                crop => crop.GrowthStage == 1 || crop.GrowthStage == 2,
+                "Watering",
+                out usedFallback);
+
+            if (data.Crop != null)
             {
-                var crop = col.GetComponent<CropBehaviour>();
-                if (crop != null)
-                {
-                    var reservedAgent = CropManager.Instance?.GetReservedAgent(crop);
-                    if (reservedAgent == agent.gameObject)
-                    {
-                        data.Crop = crop;
-                        FarmLog.Action(agent.gameObject.name, $"WaterCrop START | Target={crop.name} (reserved, verified)");
-                        break;
-                    }
-                    
-                    // Track unreserved crop that needs water as fallback
-                    if (reservedAgent == null && (crop.GrowthStage == 1 || crop.GrowthStage == 2))
-                    {
-                        bestFallback = crop;
-                    }
-                }
+                if (usedFallback)
+                    FarmLog.ActionWarn(agent.gameObject.name, $"WaterCrop FALLBACK | Claimed free crop {data.Crop.name}");
+                else
+                    FarmLog.Action(agent.gameObject.name, $"WaterCrop START | Target={data.Crop.name} (reserved, verified)");
             }
-            
-            // Fallback: claim free waterable crop if reservation was lost
-            if (data.Crop == null && bestFallback != null && CropManager.Instance != null)
-            {
-                CropManager.Instance.SubmitBid(bestFallback, agent.gameObject, 1f, "Watering");
-                if (CropManager.Instance.IsReservedBy(bestFallback, agent.gameObject))
-                {
-                    data.Crop = bestFallback;
-                    FarmLog.ActionWarn(agent.gameObject.name, $"WaterCrop FALLBACK | Claimed free crop {bestFallback.name}");
-                }
-            }
-            
-            if (data.Crop == null)
+            else
             {
                 FarmLog.ActionWarn(agent.gameObject.name, "WaterCrop ABORTED | No waterable crop at target");
             }

@@ -24,45 +24,22 @@ namespace FarmingGoap.Actions
             data.Timer = 5f; // Slow without shovel
             data.Agent = agent.gameObject; // Store agent reference
 
-            // Find crop at target position
-            var targetPos = data.Target.Position;
-            var nearbyColliders = Physics2D.OverlapCircleAll(targetPos, 1f);
-            
-            CropBehaviour bestFallback = null;
-            
-            foreach (var col in nearbyColliders)
+            bool usedFallback;
+            data.Crop = CropTargeting.ResolveCropTarget(
+                agent,
+                data.Target,
+                crop => crop.GrowthStage == 0,
+                "Planting",
+                out usedFallback);
+
+            if (data.Crop != null)
             {
-                var crop = col.GetComponent<CropBehaviour>();
-                if (crop != null)
-                {
-                    var reservedAgent = CropManager.Instance?.GetReservedAgent(crop);
-                    if (reservedAgent == agent.gameObject)
-                    {
-                        data.Crop = crop;
-                        FarmLog.Action(agent.gameObject.name, $"PlantSlow START | Target={crop.name} (reserved, verified)");
-                        break;
-                    }
-                    
-                    // Track unreserved empty crop as fallback
-                    if (reservedAgent == null && crop.GrowthStage == 0)
-                    {
-                        bestFallback = crop;
-                    }
-                }
+                if (usedFallback)
+                    FarmLog.ActionWarn(agent.gameObject.name, $"PlantSlow FALLBACK | Claimed free crop {data.Crop.name}");
+                else
+                    FarmLog.Action(agent.gameObject.name, $"PlantSlow START | Target={data.Crop.name} (reserved, verified)");
             }
-            
-            // Fallback: claim free empty crop if reservation was lost
-            if (data.Crop == null && bestFallback != null && CropManager.Instance != null)
-            {
-                CropManager.Instance.SubmitBid(bestFallback, agent.gameObject, 1f, "Planting");
-                if (CropManager.Instance.IsReservedBy(bestFallback, agent.gameObject))
-                {
-                    data.Crop = bestFallback;
-                    FarmLog.ActionWarn(agent.gameObject.name, $"PlantSlow FALLBACK | Claimed free crop {bestFallback.name}");
-                }
-            }
-            
-            if (data.Crop == null)
+            else
             {
                 FarmLog.ActionWarn(agent.gameObject.name, "PlantSlow ABORTED | No plantable crop at target");
             }

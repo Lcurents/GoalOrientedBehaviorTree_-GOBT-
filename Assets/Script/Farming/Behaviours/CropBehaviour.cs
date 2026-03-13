@@ -17,8 +17,10 @@ namespace FarmingGoap.Behaviours
 
         private float growthTimer = 0f;
         private bool isGrowing = false;
+        private bool needsWater = false;
 
         public int GrowthStage => growthStage;
+        public bool NeedsWater => needsWater;
 
         private void Start()
         {
@@ -41,6 +43,16 @@ namespace FarmingGoap.Behaviours
                     if (growthStage >= 3)
                     {
                         isGrowing = false;
+                        needsWater = false;
+                    }
+                    else
+                    {
+                        // Stage 2 requires watering to continue
+                        if (growthStage == 2)
+                        {
+                            isGrowing = false;
+                            needsWater = true;
+                        }
                     }
 
                     FarmLog.Crop(gameObject.name, $"Growth -> Stage {growthStage}");
@@ -51,6 +63,21 @@ namespace FarmingGoap.Behaviours
         public void SetGrowthStage(int stage)
         {
             growthStage = Mathf.Clamp(stage, 0, 3);
+            if (growthStage == 1)
+            {
+                isGrowing = true;
+                needsWater = false;
+            }
+            else if (growthStage == 2)
+            {
+                isGrowing = false;
+                needsWater = true;
+            }
+            else
+            {
+                isGrowing = false;
+                needsWater = false;
+            }
             UpdateVisual();
         }
 
@@ -59,6 +86,7 @@ namespace FarmingGoap.Behaviours
             // Tanam bibit
             growthStage = 1;
             isGrowing = true;
+            needsWater = false;
             growthTimer = 0f;
             UpdateVisual();
             FarmLog.Crop(gameObject.name, "Planted -> Stage 1");
@@ -67,9 +95,10 @@ namespace FarmingGoap.Behaviours
         public void WaterCrop()
         {
             // Siram tanaman = mulai proses pertumbuhan
-            if (growthStage >= 1 && growthStage < 3)
+            if (growthStage == 2 && needsWater)
             {
                 isGrowing = true;
+                needsWater = false;
                 FarmLog.Crop(gameObject.name, $"Watered at Stage {growthStage} | GrowthTimer={growthTimePerStage}s");
             }
         }
@@ -79,6 +108,7 @@ namespace FarmingGoap.Behaviours
             // Reset ke empty
             growthStage = 0;
             isGrowing = false;
+            needsWater = false;
             growthTimer = 0f;
             UpdateVisual();
             FarmLog.Crop(gameObject.name, "Harvested -> Stage 0 (reset)");

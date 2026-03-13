@@ -24,45 +24,22 @@ namespace FarmingGoap.Actions
             data.Timer = 2f; // Fast with shovel
             data.Agent = agent.gameObject; // Store agent reference for cleanup
 
-            // Find crop at target position
-            var targetPos = data.Target.Position;
-            var nearbyColliders = Physics2D.OverlapCircleAll(targetPos, 1f);
-            
-            CropBehaviour bestFallback = null;
-            
-            foreach (var col in nearbyColliders)
+            bool usedFallback;
+            data.Crop = CropTargeting.ResolveCropTarget(
+                agent,
+                data.Target,
+                crop => crop.GrowthStage == 0,
+                "Planting",
+                out usedFallback);
+
+            if (data.Crop != null)
             {
-                var crop = col.GetComponent<CropBehaviour>();
-                if (crop != null)
-                {
-                    var reservedAgent = CropManager.Instance?.GetReservedAgent(crop);
-                    if (reservedAgent == agent.gameObject)
-                    {
-                        data.Crop = crop;
-                        FarmLog.Action(agent.gameObject.name, $"PlantFast START | Target={crop.name} (reserved, verified)");
-                        break;
-                    }
-                    
-                    // Track unreserved empty crop as fallback
-                    if (reservedAgent == null && crop.GrowthStage == 0)
-                    {
-                        bestFallback = crop;
-                    }
-                }
+                if (usedFallback)
+                    FarmLog.ActionWarn(agent.gameObject.name, $"PlantFast FALLBACK | Claimed free crop {data.Crop.name}");
+                else
+                    FarmLog.Action(agent.gameObject.name, $"PlantFast START | Target={data.Crop.name} (reserved, verified)");
             }
-            
-            // Fallback: claim free empty crop if reservation was lost
-            if (data.Crop == null && bestFallback != null && CropManager.Instance != null)
-            {
-                CropManager.Instance.SubmitBid(bestFallback, agent.gameObject, 1f, "Planting");
-                if (CropManager.Instance.IsReservedBy(bestFallback, agent.gameObject))
-                {
-                    data.Crop = bestFallback;
-                    FarmLog.ActionWarn(agent.gameObject.name, $"PlantFast FALLBACK | Claimed free crop {bestFallback.name}");
-                }
-            }
-            
-            if (data.Crop == null)
+            else
             {
                 FarmLog.ActionWarn(agent.gameObject.name, "PlantFast ABORTED | No plantable crop at target");
             }
@@ -80,13 +57,12 @@ namespace FarmingGoap.Actions
                 // Plant seed
                 data.Crop.Plant();
                 
-                // Consume seed and shovel
+                // Consume seed only (shovel is returned after planting)
                 var stats = agent.GetComponent<NPCStats>();
                 if (stats != null)
                 {
                     stats.HasSeed--;
-                    stats.HasShovel--;
-                    FarmLog.Resource(agent.gameObject.name, $"PlantFast consumed | Seed={stats.HasSeed}, Shovel={stats.HasShovel}");
+                    FarmLog.Resource(agent.gameObject.name, $"PlantFast consumed | Seed={stats.HasSeed}");
                 }
 
                 data.ActionCompleted = true; // Mark as successfully completed
@@ -104,6 +80,20 @@ namespace FarmingGoap.Actions
             {
                 CropManager.Instance.ReleaseCrop(data.Crop, data.Agent);
                 FarmLog.Action(data.Agent.name, $"PlantFast COMPLETE | {data.Crop.name} planted (2s) and released");
+            }
+
+            if (data.ActionCompleted)
+            {
+                var stats = agent.GetComponent<NPCStats>();
+                if (stats != null && stats.HasShovel > 0 && ShovelStorage.Instance != null && ShovelStorage.Instance.IsReservedBy(agent.gameObject))
+                {
+                    stats.HasShovel = Mathf.Max(0, stats.HasShovel - 1);
+                    ShovelStorage.Instance.Return(agent.gameObject);
+                    var carrier = agent.GetComponent<ShovelCarrier>();
+                    if (carrier != null)
+                        carrier.SetHeld(false);
+                    FarmLog.Resource(agent.gameObject.name, $"PlantFast returned shovel | Shovel={stats.HasShovel}");
+                }
             }
         }
 

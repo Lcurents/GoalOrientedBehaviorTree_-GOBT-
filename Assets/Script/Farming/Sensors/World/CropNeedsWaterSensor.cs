@@ -9,7 +9,7 @@ namespace FarmingGoap.Sensors.World
 {
     /// <summary>
     /// Per-agent sensor: checks if THIS agent's reserved crop needs water.
-    /// Returns 1 if crop is planted/growing (stage 1-2), 0 otherwise.
+    /// Returns 1 if crop explicitly needs water (stage 2), 0 otherwise.
     /// </summary>
     [GoapId("Farming-CropNeedsWaterSensor")]
     public class CropNeedsWaterSensor : LocalWorldSensorBase
@@ -40,8 +40,8 @@ namespace FarmingGoap.Sensors.World
                 var reservedAgent = CropManager.Instance.GetReservedAgent(crop);
                 if (reservedAgent == agentObject)
                 {
-                    // Return 1 if crop needs water (planted or growing)
-                    return (crop.GrowthStage >= 1 && crop.GrowthStage < 3) ? 1 : 0;
+                    // Return 1 if crop explicitly needs water
+                    return crop.NeedsWater ? 1 : 0;
                 }
             }
 

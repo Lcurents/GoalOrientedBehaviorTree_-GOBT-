@@ -31,7 +31,6 @@ namespace FarmingGoap.Capabilities
             // GOAL: HarvestingGoal - Priority 3
             builder.AddGoal<HarvestingGoal>()
                 .AddCondition<CropGrowthStage>(Comparison.SmallerThanOrEqual, 0)
-                .AddCondition<HasFood>(Comparison.GreaterThanOrEqual, 1)
                 .SetBaseCost(2);
 
             // GOAL: WateringGoal - Priority 4
@@ -55,6 +54,7 @@ namespace FarmingGoap.Capabilities
 
             // ACTION: GetShovelAction (Optional optimization)
             builder.AddAction<GetShovelAction>()
+                .AddCondition<ShovelAvailable>(Comparison.GreaterThanOrEqual, 1)
                 .AddEffect<HasShovelKey>(EffectType.Increase)
                 .SetTarget<ShovelStorageTargetKey>()
                 .SetBaseCost(0) // Cost 0 = sekop gratis, GOAP akan ambil jika storage accessible
@@ -146,6 +146,9 @@ namespace FarmingGoap.Capabilities
 
             builder.AddWorldSensor<HasShovelSensor>()
                 .SetKey<HasShovelKey>();
+
+            builder.AddWorldSensor<ShovelAvailableSensor>()
+                .SetKey<ShovelAvailable>();
 
             // ========== SENSORS - Target ==========
             builder.AddTargetSensor<CropTargetSensor>()

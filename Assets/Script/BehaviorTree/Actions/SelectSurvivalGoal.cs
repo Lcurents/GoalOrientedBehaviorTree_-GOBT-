@@ -44,17 +44,20 @@ namespace FarmingGoap.BehaviorTree
             }
             
             // Priority 1: EatGoal (jika hunger tinggi DAN ada food)
-            if (stats.Hunger > eatThreshold.Value && stats.FoodCount > 0)
+            if (stats.Hunger > eatThreshold.Value && NPCStats.TryReserveFood(Owner.gameObject))
             {
                 actionProvider.RequestGoal<EatGoal>();
                 if (lastSelectedGoal != "EatGoal")
                 {
                     if (enableDebugLog.Value)
-                        FarmLog.Goal(Owner.name, $"SELECT EatGoal | Hunger={stats.Hunger:F0}, Food={stats.FoodCount}");
+                        FarmLog.Goal(Owner.name, $"SELECT EatGoal | Hunger={stats.Hunger:F0}, Food={stats.FoodCount} (reserved)");
                     lastSelectedGoal = "EatGoal";
                 }
                 return TaskStatus.Success;
             }
+
+            // Not eating this tick, release any stale reservation from this agent
+            NPCStats.ReleaseFoodReservation(Owner.gameObject);
             
             // Priority 2: SleepGoal (jika energy rendah)
             if (stats.Energy < sleepThreshold.Value)

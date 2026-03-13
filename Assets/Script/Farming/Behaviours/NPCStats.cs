@@ -11,6 +11,8 @@ namespace FarmingGoap.Behaviours
         [Header("Shared Resources")]
         [SerializeField] private int sharedFoodDisplay = 0; // Inspector display only (read from static)
         private static int sharedFoodCount = 0; // Shared across ALL agents
+        private static readonly System.Collections.Generic.HashSet<int> foodReservations =
+            new System.Collections.Generic.HashSet<int>();
 
         [Header("Inventory - REDESIGNED")]
         [SerializeField] private int hasSeed = 0; // Jumlah bibit
@@ -101,15 +103,72 @@ namespace FarmingGoap.Behaviours
         {
             sharedFoodCount = Mathf.Max(0, sharedFoodCount - amount);
         }
+
+        public static bool HasFoodReservation(GameObject agent)
+        {
+            if (agent == null) return false;
+            return foodReservations.Contains(agent.GetInstanceID());
+        }
+
+        public static bool CanReserveFood(GameObject agent)
+        {
+            if (agent == null) return false;
+            if (HasFoodReservation(agent)) return true;
+
+            int remainingUnreserved = sharedFoodCount - foodReservations.Count;
+            return remainingUnreserved > 0;
+        }
+
+        public static bool TryReserveFood(GameObject agent)
+        {
+            if (agent == null) return false;
+
+            int id = agent.GetInstanceID();
+            if (foodReservations.Contains(id)) return true;
+
+            int remainingUnreserved = sharedFoodCount - foodReservations.Count;
+            if (remainingUnreserved <= 0) return false;
+
+            foodReservations.Add(id);
+            return true;
+        }
+
+        public static void ReleaseFoodReservation(GameObject agent)
+        {
+            if (agent == null) return;
+            foodReservations.Remove(agent.GetInstanceID());
+        }
+
+        public static bool TryConsumeReservedFood(GameObject agent)
+        {
+            if (agent == null) return false;
+
+            int id = agent.GetInstanceID();
+            if (!foodReservations.Contains(id)) return false;
+            if (sharedFoodCount <= 0)
+            {
+                foodReservations.Remove(id);
+                return false;
+            }
+
+            sharedFoodCount = Mathf.Max(0, sharedFoodCount - 1);
+            foodReservations.Remove(id);
+            return true;
+        }
         
         /// <summary>
         /// Reset shared food saat scene reload (karena static tidak reset otomatis)
         /// </summary>
         private void OnDestroy()
         {
+            foodReservations.Remove(gameObject.GetInstanceID());
+
             // Only reset when last NPCStats is destroyed
             if (FindObjectsByType<NPCStats>(FindObjectsSortMode.None).Length <= 1)
+            {
                 sharedFoodCount = 0;
+                foodReservations.Clear();
+            }
         }
         
         private void LateUpdate()

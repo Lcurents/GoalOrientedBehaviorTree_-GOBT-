@@ -1,6 +1,7 @@
 using UnityEngine;
 using FarmingGoap.Behaviours;
 using CrashKonijn.Goap.Runtime;
+using System.Linq;
 
 namespace FarmingGoap.Debug
 {
@@ -10,10 +11,21 @@ namespace FarmingGoap.Debug
     /// </summary>
     public class NPCDebugDisplay : MonoBehaviour
     {
+        private static readonly System.Collections.Generic.List<NPCDebugDisplay> ActiveDisplays =
+            new System.Collections.Generic.List<NPCDebugDisplay>();
+
         [Header("References")]
         [SerializeField] private NPCStats stats;
         [SerializeField] private CropBehaviour crop;
         [SerializeField] private GoapActionProvider actionProvider;
+
+        [Header("Screen Display")]
+        [SerializeField] private bool enableScreenDisplay = true;
+        [SerializeField] private float marginX = 10f;
+        [SerializeField] private float marginY = 10f;
+        [SerializeField] private float blockWidth = 220f;
+        [SerializeField] private float blockHeight = 150f;
+        [SerializeField] private float blockSpacing = 10f;
 
         [Header("Current Stats (Read-Only)")]
         [SerializeField] private float currentHunger;
@@ -54,12 +66,33 @@ namespace FarmingGoap.Debug
             }
         }
 
+        private void OnEnable()
+        {
+            if (!ActiveDisplays.Contains(this))
+                ActiveDisplays.Add(this);
+        }
+
+        private void OnDisable()
+        {
+            ActiveDisplays.Remove(this);
+        }
+
         private void OnGUI()
         {
             // Optional: Display on screen
-            if (stats == null) return;
+            if (!enableScreenDisplay || stats == null)
+                return;
 
-            GUILayout.BeginArea(new Rect(10, 10, 300, 200));
+            // Stable ordering by agent name
+            var ordered = ActiveDisplays.OrderBy(d => d.gameObject.name).ToList();
+            int index = ordered.IndexOf(this);
+            if (index < 0)
+                return;
+
+            float x = marginX + index * (blockWidth + blockSpacing);
+            float y = marginY;
+
+            GUILayout.BeginArea(new Rect(x, y, blockWidth, blockHeight));
             GUILayout.Label($"<b>NPC Stats</b>");
             GUILayout.Label($"Hunger: {stats.Hunger:F1}/100");
             GUILayout.Label($"Energy: {stats.Energy:F1}/100");

@@ -90,8 +90,7 @@ namespace FarmingGoap.BehaviorTree
             {
                 int stage = currentReservedCrop.GrowthStage;
                 bool cropNeedsWork = (stage == 0) ||  // Empty → needs planting
-                                    (stage == 1) ||   // Planted → needs watering
-                                    (stage == 2) ||   // Growing → needs watering  
+                                    (stage == 2) ||   // Stage 2 → needs watering
                                     (stage == 3);     // Ready → needs harvesting
 
                 // If crop still needs work, CONTINUE with this crop!
@@ -113,7 +112,7 @@ namespace FarmingGoap.BehaviorTree
                             stats.Energy, stats.Hunger, stage,
                             stats.WeightEnergy, stats.WeightHunger, stats.GoalBenefitPlanting) + distanceBonus;
                     }
-                    else if (stage == 1 || stage == 2) // Planted or Growing → Water
+                    else if (stage == 2) // Stage 2 → Water
                     {
                         goalForReserved = "WateringGoal";
                         utilityForReserved = UtilityCalculator.CalculateWateringUtility(
