@@ -15,6 +15,14 @@ namespace FarmingGoap.Actions
         {
         }
 
+        public override bool IsValid(IActionReceiver agent, Data data)
+        {
+            var stats = agent.Transform.gameObject.GetComponent<NPCStats>();
+            if (stats == null) return false;
+            // Hanya valid jika belum punya 2 sekop (kapasitas maksimum)
+            return stats.HasShovel < 2;
+        }
+
         public override void Start(IMonoAgent agent, Data data)
         {
             data.Timer = 1f; // 1 detik untuk ambil sekop

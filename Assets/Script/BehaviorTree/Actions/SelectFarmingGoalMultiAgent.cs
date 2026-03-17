@@ -26,6 +26,8 @@ namespace FarmingGoap.BehaviorTree
         private NPCStats stats;
         private string lastSelectedGoal = "";
         private CropBehaviour lastTargetCrop = null;
+        private int lastNoValidLogFrame = -99999;
+        private string lastNoValidSnapshot = "";
         
         public override void OnAwake()
         {
@@ -59,7 +61,7 @@ namespace FarmingGoap.BehaviorTree
             if (allCrops.Length == 0)
             {
                 if (enableDebugLog.Value)
-                    FarmLog.GoalWarn(Owner.name, "No crops found in scene");
+                    FarmLog.Goal(Owner.name, "NO GOAL | No crops found | IDLE");
                 return TaskStatus.Failure;
             }
             
@@ -90,7 +92,7 @@ namespace FarmingGoap.BehaviorTree
             {
                 int stage = currentReservedCrop.GrowthStage;
                 bool cropNeedsWork = (stage == 0) ||  // Empty → needs planting
-                                    (stage == 2) ||   // Stage 2 → needs watering
+                                    (stage == 2 && currentReservedCrop.NeedsWater) ||   // Stage 2 only if it actually needs watering
                                     (stage == 3);     // Ready → needs harvesting
 
                 // If crop still needs work, CONTINUE with this crop!
@@ -112,7 +114,7 @@ namespace FarmingGoap.BehaviorTree
                             stats.Energy, stats.Hunger, stage,
                             stats.WeightEnergy, stats.WeightHunger, stats.GoalBenefitPlanting) + distanceBonus;
                     }
-                    else if (stage == 2) // Stage 2 → Water
+                    else if (stage == 2 && currentReservedCrop.NeedsWater) // Stage 2 and needs water → Water
                     {
                         goalForReserved = "WateringGoal";
                         utilityForReserved = UtilityCalculator.CalculateWateringUtility(
@@ -197,6 +199,10 @@ namespace FarmingGoap.BehaviorTree
                 float waterU = UtilityCalculator.CalculateWateringUtility(
                     stats.Energy, stats.Hunger, stage,
                     stats.WeightEnergy, stats.WeightHunger, stats.GoalBenefitWatering);
+
+                // Watering is only valid when the crop explicitly needs water.
+                if (!crop.NeedsWater)
+                    waterU = -999f;
                     
                 float harvestU = UtilityCalculator.CalculateHarvestingUtility(
                     stats.Energy, stats.Hunger, stage,
@@ -257,7 +263,25 @@ namespace FarmingGoap.BehaviorTree
                         else
                             noValidStage++;
                     }
-                    FarmLog.GoalWarn(Owner.name, $"NO VALID GOAL | Total={totalCrops}, ReservedByOthers={reservedByOthers}, NoMatchingStage={noValidStage}");
+
+                    string snapshot = $"{totalCrops}:{reservedByOthers}:{noValidStage}";
+                    bool changedState = snapshot != lastNoValidSnapshot;
+                    bool cooldownPassed = (Time.frameCount - lastNoValidLogFrame) >= 600;
+
+                    if (changedState || cooldownPassed)
+                    {
+                        if (reservedByOthers == totalCrops)
+                        {
+                            FarmLog.Goal(Owner.name, $"NO GOAL | All crops reserved by others ({reservedByOthers}/{totalCrops}) | IDLE");
+                        }
+                        else
+                        {
+                            FarmLog.Goal(Owner.name, $"NO GOAL | Total={totalCrops}, ReservedByOthers={reservedByOthers}, NoMatchingStage={noValidStage} | IDLE");
+                        }
+
+                        lastNoValidSnapshot = snapshot;
+                        lastNoValidLogFrame = Time.frameCount;
+                    }
                 }
                 return TaskStatus.Failure;
             }

@@ -24,7 +24,8 @@ namespace FarmingGoap.Behaviours
 
         private void Start()
         {
-            UpdateVisual();
+            // Sync runtime flags from initial inspector stage so stage-2 crops are waterable at startup.
+            SetGrowthStage(growthStage);
         }
 
         private void Update()

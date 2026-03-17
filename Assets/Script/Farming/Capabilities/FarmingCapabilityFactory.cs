@@ -29,8 +29,10 @@ namespace FarmingGoap.Capabilities
                 .SetBaseCost(1);
 
             // GOAL: HarvestingGoal - Priority 3
+            // Kondisi: CropGrowthStage <= 2, artinya crop BUKAN di stage 3 (matang)
+            // Setelah Harvest(), crop kembali ke stage 0, sehingga kondisi ini terpenuhi
             builder.AddGoal<HarvestingGoal>()
-                .AddCondition<CropGrowthStage>(Comparison.SmallerThanOrEqual, 0)
+                .AddCondition<CropGrowthStage>(Comparison.SmallerThanOrEqual, 2)
                 .SetBaseCost(2);
 
             // GOAL: WateringGoal - Priority 4
@@ -53,11 +55,12 @@ namespace FarmingGoap.Capabilities
                 .SetInRange(1f);
 
             // ACTION: GetShovelAction (Optional optimization)
+            // Cost 1 agar GOAP hanya ambil sekop jika memang dibutuhkan dalam chain
             builder.AddAction<GetShovelAction>()
                 .AddCondition<ShovelAvailable>(Comparison.GreaterThanOrEqual, 1)
                 .AddEffect<HasShovelKey>(EffectType.Increase)
                 .SetTarget<ShovelStorageTargetKey>()
-                .SetBaseCost(0) // Cost 0 = sekop gratis, GOAP akan ambil jika storage accessible
+                .SetBaseCost(1)
                 .SetInRange(1f);
 
             // ACTION: PlantSeedFastAction (WITH shovel - preferred)
@@ -88,12 +91,14 @@ namespace FarmingGoap.Capabilities
                 .SetInRange(1f);
 
             // ACTION: WaterCropAction
+            // CropGrowthStage condition dihapus - sensor CropNeedsWater sudah handle stage check
+            // HasWateringCanKey Decrease ditambahkan agar GOAP tahu ember habis setelah dipakai
             builder.AddAction<WaterCropAction>()
-                .AddCondition<CropGrowthStage>(Comparison.GreaterThanOrEqual, 1)
                 .AddCondition<CropNeedsWater>(Comparison.GreaterThanOrEqual, 1)
                 .AddCondition<HasWateringCanKey>(Comparison.GreaterThanOrEqual, 1) // Harus punya ember
                 .AddEffect<CropGrowthStage>(EffectType.Increase)
                 .AddEffect<CropNeedsWater>(EffectType.Decrease)
+                .AddEffect<HasWateringCanKey>(EffectType.Decrease) // Ember habis setelah dipakai
                 .SetTarget<CropTarget>()
                 .SetBaseCost(2)
                 .SetInRange(1f);

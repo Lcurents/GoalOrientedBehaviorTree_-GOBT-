@@ -61,8 +61,9 @@ namespace FarmingGoap.Brain
         public static float CalculateWateringUtility(float currentEnergy, float currentHunger, int cropStage,
             float weightEnergy, float weightHunger, float goalBenefit)
         {
-            // Only stage 2 needs watering
-            if (cropStage != 2)
+            // Watering aktif di stage 1 atau 2 (crop sudah ditanam, belum matang)
+            // CropNeedsWater sensor akan memfilter lebih lanjut saat GOAP planning
+            if (cropStage < 1 || cropStage > 2)
                 return -999f;
             
             return CalculateUtility(
