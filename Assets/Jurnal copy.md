@@ -11,11 +11,12 @@ This study presents the implementation of a Goal Oriented Behavior Tree (GOBT) f
 Keywords: behavior tree, goal oriented action planning, multi-agent systems coordination, RPG game, utility auction
 
 ## 1. Pendahuluan
-Perilaku agen otonom pada game RPG modern tidak cukup hanya reaktif terhadap event lokal, tetapi juga harus mampu berkoordinasi ketika beberapa agen bekerja pada ruang dan sumber daya yang sama. Pada skenario pertanian multi-agen, konflik sering muncul ketika beberapa agen memilih target crop identik pada waktu hampir bersamaan. Kondisi ini dapat memicu duplikasi kerja, perpindahan target berulang, starvation agen tertentu, dan log eksekusi yang sulit dianalisis untuk kebutuhan evaluasi ilmiah.
+Industri game mengalami pertumbuhan yang signifikan setiap tahunnya, khususnya dalam genre Role-Playing Game (RPG). Salah satu elemen penting dalam game RPG yang secara signifikan memengaruhi pengalaman pemain adalah kehadiran Non-Playable Character (NPC). NPC yang mampu merespons secara reaktif terhadap pemain maupun lingkungan terbukti dapat meningkatkan realisme dunia permainan dan memperkaya pengalaman bermain. Dalam menghadapi kompleksitas lingkungan RPG yang dinamis, dibutuhkan arsitektur Artificial Intelligence (AI) yang fleksibel, modular, dan efisien untuk mengembangkan intelligent agent yang mampu bertindak secara otonom.
+Goal-Oriented Behavior Tree (GOBT) hadir sebagai kerangka kerja kecerdasan buatan hibrida yang mengintegrasikan keunggulan Goal-Oriented Action Planning (GOAP), Behavior Tree (BT), dan seleksi aksi berbasis Utility System. Pendekatan ini mengatasi kelemahan GOAP yang sering kali memerlukan proses perhitungan komputasi yang mahal dalam skala besar, serta menutupi kelemahan BT konvensional yang cenderung kaku dalam menyesuaikan perilaku berdasarkan kondisi dunia yang berubah. Penggabungan ini menghasilkan sistem agen yang modular, efisien, dan sangat reaktif terhadap dinamika lingkungan permainan.
+Meskipun memiliki keunggulan komputasi yang tinggi, implementasi GOBT hingga saat ini masih didominasi pada konteks perilaku agen individual yang bertindak tanpa mekanisme koordinasi dengan agen lainnya. Eksplorasi penerapan GOBT dalam konteks interaksi dan koordinasi pada Multi-Agent Systems (MAS) masih sangat terbatas. Selain itu, sebagian besar penelitian terkait implementasi MAS saat ini masih lebih banyak terfokus pada genre permainan strategi dan simulasi, dengan sedikit perhatian yang diberikan pada penyelesaian masalah koordinasi agen dalam genre RPG.
+Oleh karena itu, penelitian ini bertujuan untuk merancang dan mengimplementasikan mekanisme komunikasi antar-agen sebagai bentuk logika koordinasi eksplisit dalam Multi-Agent Systems berbasis algoritma GOBT pada lingkungan game RPG. Komunikasi ini dirancang dalam bentuk pengiriman informasi tugas dan pelelangan status area untuk mencegah terjadinya konflik antar-agen.
+Evaluasi kinerja dari Multi-Agent Systems ini diukur melalui pengujian kuantitatif dengan membandingkan indikator efektivitas seperti waktu penyelesaian tugas, jumlah konflik (deadlock) yang terjadi, serta tingkat keberhasilan tugas. Melalui pengujian ini, diharapkan pengintegrasian mekanisme komunikasi pada arsitektur GOBT dapat memberikan kontribusi nyata dalam meningkatkan skalabilitas dan reaktivitas agen cerdas dalam industri permainan
 
-Penelitian ini mengusulkan implementasi Goal Oriented Behavior Tree sebagai kerangka keputusan berlapis untuk menangani masalah tersebut. Lapisan pertama menggunakan Behavior Tree untuk memilih konteks keputusan tingkat tinggi, yaitu survival, farming, atau idle. Lapisan kedua menggunakan Goal-Oriented Action Planning untuk menyusun urutan aksi yang memenuhi kondisi world state dan target state. Lapisan ketiga menerapkan mekanisme koordinasi terpusat berbasis utility auction agar alokasi crop antar agen tetap eksklusif dan konsisten.
-
-Kontribusi utama penelitian berada pada integrasi ketiga lapisan tersebut dalam implementasi Unity yang berjalan waktu nyata, serta evaluasi perilaku melalui log kategoris [GOAL], [ACTION], [AUCTION], [CROP], dan [RESOURCE]. Dengan pendekatan ini, penelitian tidak hanya menilai keberhasilan aksi agen, tetapi juga menganalisis stabilitas koordinasi, kualitas keputusan, dan keterbacaan data eksekusi sebagai dasar pelaporan jurnal.
 
 ## 2. Metode Penelitian
 Penelitian ini menerapkan pendekatan eksperimental pada simulasi pertanian dalam game RPG berbasis Unity dengan skema Multi-Agent Systems. Setiap agen direpresentasikan sebagai entitas otonom yang memiliki status internal berupa energi, kelaparan, inventori, serta parameter kepribadian berbasis bobot utilitas. Proses pengambilan keputusan dipisahkan menjadi tiga lapisan yang saling terhubung, yaitu seleksi konteks oleh Behavior Tree, perencanaan aksi oleh GOAP, dan koordinasi sumber daya bersama oleh mekanisme lelang berbasis utilitas.
@@ -28,57 +29,20 @@ Desain MAS menekankan dua prinsip. Pertama, setiap agen membuat keputusan secara
 Gambar 1. Arsitektur Lingkungan MAS dan Aliran Koordinasi
 
 ```mermaid
-flowchart TD
-    subgraph A[Agent Layer]
-        FA[Farmer A - NPCStats BT GOAP]
-        FB[Farmer B - NPCStats BT GOAP]
-        FC[Farmer C - NPCStats BT GOAP]
-    end
+flowchart LR
+    AG[Agent Layer\nFarmer A, B, C\nBehavior Tree + GOAP + Sensor]
+    CM[Coordination Layer\nCropManager\nReservation + Auction]
+    WD[Shared World Layer\nCrop A/B/C + Storage + Water Source + Bed]
 
-    subgraph W[Shared World Layer]
-        CA[Crop A - Stage 0 1 2 3]
-        CB[Crop B - Stage 0 1 2 3]
-        CC[Crop C - Stage 0 1 2 3]
-        ST[Storage]
-        WS[Water Source]
-        BD[Bed]
-    end
-
-    subgraph C[Coordination Layer]
-        CM[CropManager - Reservation Auction]
-    end
-
-    FA -->|Sense| CA
-    FA -->|Sense| CB
-    FA -->|Sense| CC
-    FB -->|Sense| CA
-    FB -->|Sense| CB
-    FB -->|Sense| CC
-    FC -->|Sense| CA
-    FC -->|Sense| CB
-    FC -->|Sense| CC
-
-    FA -->|Bid Utility| CM
-    FB -->|Bid Utility| CM
-    FC -->|Bid Utility| CM
-
-    FA -->|Query reservation| CM
-    FB -->|Query reservation| CM
-    FC -->|Query reservation| CM
-    CM -->|Reservation status| FA
-    CM -->|Reservation status| FB
-    CM -->|Reservation status| FC
-
-    FA -. uses .-> ST
-    FA -. uses .-> WS
-    FA -. uses .-> BD
-    FB -. uses .-> ST
-    FB -. uses .-> WS
-    FB -. uses .-> BD
-    FC -. uses .-> ST
-    FC -. uses .-> WS
-    FC -. uses .-> BD
+    AG -->|World-state sensing| WD
+    AG -->|Utility bidding| CM
+    CM -->|Reservation status| AG
+    AG -->|Action execution| WD
 ```
+
+Gambar 1 memvisualisasikan konteks eksperimen penelitian ini, yaitu tiga agen petani yang bekerja serempak pada lingkungan bersama berisi tiga crop dan fasilitas pendukung. Alur pertama, world-state sensing, menunjukkan bahwa setiap agen melakukan observasi world key dan target key seperti crop growth stage, crop needs water, serta ketersediaan resource sebelum memilih goal. Alur kedua, utility bidding, merepresentasikan proses ketika agen mengirim kandidat tugas beserta nilai utilitas ke CropManager. Alur ketiga, reservation status, menunjukkan hasil koordinasi terpusat yang menentukan crop mana yang valid untuk dieksekusi oleh agen pada siklus keputusan saat itu. Alur keempat, action execution, menegaskan bahwa aksi GOAP hanya dijalankan pada target dengan reservasi valid, sehingga konflik perebutan crop dapat ditekan. Dengan demikian, gambar ini menghubungkan secara langsung desain arsitektur dengan temuan log real pada bagian hasil, khususnya pola bid-reserved-result dan pelepasan reservasi setelah aksi selesai atau terinterupsi.
+
+Untuk memudahkan pembaca umum, istilah pada alur dapat dibaca sebagai berikut: world-state sensing berarti agen membaca kondisi lingkungan sebelum memutuskan tindakan, utility bidding berarti agen mengajukan pilihan tugas terbaik berdasarkan nilai perhitungan, reservation status berarti sistem memberi tahu target mana yang sah dikerjakan agen, dan action execution berarti agen menjalankan aksi pada target yang sudah disetujui sistem.
 
 ### 2.2 Arsitektur GOBT
 Arsitektur GOBT menggabungkan seleksi prioritas makro dan perencanaan aksi mikro. Pada tingkat makro, Behavior Tree mengevaluasi cabang survival terlebih dahulu berdasarkan ambang hunger dan energy. Ketika kondisi survival terpenuhi, node seleksi survival meminta EatGoal atau SleepGoal. Apabila survival tidak mendesak, eksekusi berpindah ke cabang farming melalui node seleksi farming multi-agen yang menghitung utilitas lintas crop. Ketika kedua cabang tidak menghasilkan goal valid, sistem jatuh ke fallback idle tanpa request goal GOAP baru.
@@ -86,23 +50,33 @@ Arsitektur GOBT menggabungkan seleksi prioritas makro dan perencanaan aksi mikro
 Pada tingkat mikro, GOAP menerima goal hasil seleksi Behavior Tree lalu membangun rantai aksi berdasarkan precondition, effect, dan base cost. Untuk penanaman, planner dapat memilih PlantSeedFastAction jika agen memiliki sekop, atau PlantSeedSlowAction sebagai fallback saat sekop tidak tersedia. Untuk penyiraman, planner memerlukan status kepemilikan watering can serta kondisi crop yang memang membutuhkan air. Untuk panen, planner menuntut crop pada stage matang. Pemisahan ini menghasilkan modularitas: Behavior Tree memutuskan goal prioritas, GOAP memutuskan langkah operasional.
 
 ### 2.3 Mekanisme Koordinasi dan Lelang Utilitas
-Koordinasi antar agen dilakukan oleh CropManager melalui reservation dan auction. Pada saat seleksi farming, setiap agen menghitung utilitas untuk kandidat goal tanam, siram, dan panen pada crop yang tersedia. Nilai utilitas dasar dihitung menggunakan:
+Koordinasi antar agen diatur oleh CropManager dengan dua langkah: reservation (penguncian target) dan auction (pemilihan pemenang bid). Saat memilih tugas farming, setiap agen menilai tiga pilihan pada setiap crop: tanam, siram, atau panen. Nilai dasarnya dihitung dengan persamaan:
 
 $$
 U(g)=\left(W_{goal}\cdot B_g\right)-\left(W_E\cdot\frac{C_E}{E_{max}}\right)-\left(W_H\cdot\frac{C_H}{H_{max}}\right)
 $$
 
-Dengan $U(g)$ sebagai utilitas goal $g$, $B_g$ sebagai benefit goal, $C_E$ dan $C_H$ sebagai biaya energi dan kelaparan, serta $W_E$ dan $W_H$ sebagai bobot kepribadian agen. Sistem menambahkan penalti 50% ketika energi mendekati batas bawah atau kelaparan mendekati batas atas. Setelah itu, sistem menambahkan bonus kedekatan target:
+$U(g)$ adalah skor untuk goal $g$. Semakin besar benefit ($B_g$), skor naik. Semakin besar biaya energi ($C_E$) dan biaya kelaparan ($C_H$), skor turun sesuai bobot kepribadian agen ($W_E$, $W_H$). Jika energi agen sudah rendah atau kelaparan sudah tinggi, skor ini dipotong 50% agar agen tidak memaksakan tugas berat.
+
+Setelah skor dasar didapat, sistem memberi bonus jarak agar agen cenderung memilih crop terdekat:
 
 $$
 U'(g,c)=U(g)+0.15\cdot\left(1-\text{clamp}\left(\frac{d(a,c)}{50},0,1\right)\right)
 $$
 
-Dengan $d(a,c)$ sebagai jarak agen $a$ ke crop $c$. Agen kemudian mengirim bid dengan format (crop, agent, utility, goalType). CropManager mengeksekusi lelang secara langsung, menetapkan pemenang berdasarkan utilitas tertinggi, menolak bid pada crop yang sudah direservasi agen lain, dan meneruskan hasilnya ke target sensor agar hanya pemilik reservasi yang dapat mengeksekusi aksi pada crop tersebut.
+$d(a,c)$ adalah jarak agen $a$ ke crop $c$. Nilai bonus dibatasi dengan clamp agar tetap stabil. Agen lalu mengirim bid berisi (crop, agent, utility, goalType). CropManager langsung memproses bid tersebut: memilih utilitas tertinggi, menolak bid jika crop sudah direservasi agen lain, lalu mengirim status reservasi ke sensor target. Akibatnya, hanya agen pemilik reservasi yang boleh mengeksekusi aksi pada crop itu.
 
-Mekanisme pelepasan reservasi dilakukan ketika aksi selesai maupun saat interupsi. Desain ini mencegah lock berkepanjangan dan mengurangi risiko starvation. Selain itu, kondisi tanpa goal valid dicatat sebagai log informatif NO GOAL | IDLE agar observasi eksperimen tetap bersih dan mudah dibaca.
+Reservasi dilepas saat aksi selesai atau terinterupsi. Mekanisme ini mencegah lock terlalu lama dan menurunkan risiko starvation. Jika tidak ada goal yang valid, sistem menulis log informatif NO GOAL | IDLE (bukan warning), sehingga data eksperimen lebih bersih dan mudah dibaca.
 
-Tabel 1. Contoh Evaluasi Lelang Utilitas Multi-Agent
+## 3. Hasil dan Pembahasan
+Bab ini menyajikan hasil eksekusi arsitektur GOBT pada skenario tiga agen dan tiga crop dengan kondisi awal heterogen. Kondisi awal crop ditetapkan pada stage 0, stage 3, dan stage 2 untuk memaksa sistem menangani tiga jenis pekerjaan berbeda secara paralel, yaitu planting, harvesting, dan watering. Evaluasi dilakukan menggunakan log runtime terstruktur sehingga urutan keputusan dapat ditelusuri secara kronologis dengan timestamp T=mm:ss.
+
+### 3.1 Hasil Eksekusi Skenario Multi-Tugas
+Berdasarkan log real, pada T=00:00 Farmer A dan Farmer C memilih SleepGoal karena energi awal rendah (20 dan 21), sedangkan Farmer B langsung memenangkan lelang PlantingGoal untuk Crop A dengan utilitas 0.800. Pada T=00:02 Farmer A melakukan bidding HarvestingGoal untuk Crop B dan menang dengan utilitas 0.903. Pada T=00:06 Farmer C melakukan bidding WateringGoal untuk Crop C dan menang dengan utilitas 0.395. Pola ini menunjukkan tiga jenis pekerjaan farming dapat dialokasikan paralel pada fase awal simulasi tanpa konflik target antarpelaku.
+
+Pada fase eksekusi, log juga memperlihatkan dinamika replanning yang valid. Farmer B sempat memulai PlantSlow pada Crop A, tetapi pada T=00:10 aksi terinterupsi karena transisi ke SleepGoal ketika energi turun ke 15, lalu reservasi Crop A dilepas secara eksplisit. Pada T=00:13 Farmer A menyelesaikan panen Crop B (crop reset ke stage 0) dan menambah shared food sebesar +1, kemudian berpindah ke EatGoal. Pada T=00:18 setelah makan selesai, Farmer A kembali ke cabang farming dan melakukan bidding PlantingGoal untuk Crop B dengan utilitas 0.518. Rangkaian ini membuktikan bahwa sistem mendukung perpindahan goal survival-farming secara adaptif sambil mempertahankan konsistensi reservation.
+
+Tabel 1. Evaluasi Lelang Utilitas Berdasarkan Log Real Eksekusi
 
 | Waktu T | Agen | Crop Kandidat | Stage Crop | Utility Planting | Utility Watering | Utility Harvesting | Utility Maksimum | Bid Dikirim | Pemenang Lelang | Status Reservasi Setelah Lelang |
 |---|---|---|---:|---:|---:|---:|---:|---|---|---|
@@ -111,35 +85,24 @@ Tabel 1. Contoh Evaluasi Lelang Utilitas Multi-Agent
 | 00:06 | Farmer C | Crop C | 2 | -0.999 | 0.395 | -0.999 | 0.395 | Ya | Farmer C | Crop C -> Farmer C |
 | 00:14 | Farmer B | Crop A | 0 | 0.803 | -0.999 | -0.999 | 0.803 | Ya | Farmer B | Crop A -> Farmer B |
 | 00:18 | Farmer A | Crop B | 0 | 0.518 | -0.999 | -0.999 | 0.518 | Ya | Farmer A | Crop B -> Farmer A |
-| 00:23 | Farmer C | Crop C | 2 | -0.999 | 0.390 | -0.999 | 0.390 | Ya | Farmer C | Crop C -> Farmer C |
 
-Keterangan: nilai -0.999 menandakan goal tidak valid pada stage tersebut.
-
-## 3. Hasil dan Pembahasan
-Bab ini menyajikan hasil eksekusi arsitektur GOBT pada skenario tiga agen dan tiga crop dengan kondisi awal heterogen. Kondisi awal crop ditetapkan pada stage 0, stage 3, dan stage 2 untuk memaksa sistem menangani tiga jenis pekerjaan berbeda secara paralel, yaitu planting, harvesting, dan watering. Evaluasi dilakukan menggunakan log runtime terstruktur sehingga urutan keputusan dapat ditelusuri secara kronologis dengan timestamp T=mm:ss.
-
-### 3.1 Hasil Eksekusi Skenario Multi-Tugas
-Hasil awal menunjukkan cabang survival dan cabang farming dapat berjalan koeksis tanpa saling meniadakan. Pada T=00:00 dua agen memilih SleepGoal karena energi rendah, sementara satu agen melakukan bidding untuk PlantingGoal pada crop stage 0. Pada T=00:02 agen lain berpindah ke HarvestingGoal dan memenangkan crop stage 3. Pada T=00:06 agen berikutnya melakukan bidding dan memperoleh crop stage 2 untuk WateringGoal. Pola ini menunjukkan seleksi farming tidak membutuhkan sinkronisasi global seluruh agen, namun tetap konsisten karena alokasi target dikendalikan reservation.
-
-Eksekusi aksi memperlihatkan transisi state dunia sesuai desain: HarvestCropAction mengubah crop dari stage 3 ke stage 0 dan menambah shared food, PlantSeedSlowAction mengubah crop dari stage 0 ke stage 1, dan WaterCropAction menormalkan status needsWater agar crop kembali pada mode pertumbuhan otomatis. Urutan tersebut membuktikan bahwa planner GOAP menurunkan goal abstrak menjadi aksi konkret yang memodifikasi world state secara valid.
+Keterangan: nilai -0.999 menandakan goal tidak valid pada stage tersebut; nilai utilitas dan urutan waktu diambil dari potongan log real sesi pengujian.
 
 ### 3.2 Pembahasan Koordinasi, Konflik, dan Stabilitas
-Pada fase awal pengujian, sistem sempat menampilkan ledakan log berulang saat agen memilih WateringGoal pada crop stage 1 yang tidak membutuhkan penyiraman. Pola ini muncul sebagai rangkaian BID, RESERVED, no longer needs work, lalu RELEASED secara berulang dalam interval sangat rapat. Secara analitis, fenomena ini berasal dari ketidaksesuaian antara validasi utilitas watering dan kondisi kerja aktual crop.
+Log real memperlihatkan mekanisme koordinasi bekerja sesuai desain first-come-first-reserved berbasis utility auction. Setiap event BID langsung diikuti RESERVED dan RESULT, kemudian aksi dieksekusi hanya pada target yang sudah terverifikasi sebagai reserved. Hal ini terlihat konsisten pada tiga alokasi awal: Crop A untuk planting, Crop B untuk harvesting, dan Crop C untuk watering. Pada skenario interupsi (PlantSlow Farmer B di T=00:10), sistem tetap stabil karena reservasi langsung dilepas, sehingga crop dapat kembali masuk pool alokasi tanpa menunggu timeout tambahan.
 
-Setelah validasi watering diperketat menjadi berbasis status eksplisit needsWater, loop berulang berhenti. Kualitas koordinasi meningkat karena reservation kembali merepresentasikan niat kerja valid, dan kualitas observasi meningkat karena log tidak lagi didominasi event repetitif tanpa progres pekerjaan. Temuan ini menegaskan bahwa pada MAS berbasis utilitas, konsistensi semantik antara fungsi evaluasi dan precondition aksi sama pentingnya dengan algoritme lelang.
-
-Mekanisme anti-konflik inti tetap stabil sepanjang eksekusi. Setiap crop hanya memiliki satu pemilik aktif melalui reservation dictionary di CropManager. Agen lain yang mencoba bid pada crop terreservasi menerima penolakan. Saat aksi selesai atau terinterupsi, reservasi dilepas sehingga resource kembali tersedia. Rangkaian ini mencegah deadlock saling menunggu resource sekaligus mencegah race condition dua agen mengeksekusi aksi pada target identik.
+Pesan "Skipping connection ... Recursive connection detected" pada akhir log tidak menunjukkan konflik koordinasi agen di runtime game, melainkan peringatan dari komponen visualisasi graph planner saat menggambar koneksi action yang sudah pernah ditampilkan. Dengan kata lain, pesan tersebut merupakan artefak viewer/debugging graph, bukan indikasi dua agen mengeksekusi crop yang sama. Secara operasional, indikator koordinasi utama tetap harus dibaca dari log GOAL, AUCTION, ACTION, CROP, dan RESOURCE, yang pada sesi ini menunjukkan urutan eksekusi masih konsisten.
 
 ### 3.3 Implikasi Terhadap Kinerja GOBT untuk RPG
 Hasil eksperimen memperlihatkan bahwa pembagian peran antara Behavior Tree dan GOAP menghasilkan respons adaptif terhadap dinamika kebutuhan agen. Behavior Tree menjaga prioritas kebutuhan dasar, sedangkan GOAP menjaga rasionalitas urutan aksi farming. Dalam konteks game RPG, kombinasi ini penting karena agen harus tampak cerdas secara individual sekaligus koheren secara sosial ketika berbagi resource.
 
 Dari sisi observabilitas, perubahan log menjadi NO GOAL | IDLE pada kondisi normal tanpa tugas membantu memisahkan status error dari status idle valid. Dengan demikian, log berfungsi ganda sebagai instrumen debugging teknis dan instrumen evaluasi ilmiah yang dapat dianalisis kuantitatif.
 
-Gambar 2. Timeline Eksekusi Agen pada Interval 0-30 Detik
+Gambar 2. Timeline Eksekusi Agen pada Interval 0-20 Detik
 
 ```mermaid
 gantt
-    title Timeline State Agen (0-30 detik)
+    title Timeline State Agen Berdasarkan Log Real (0-20 detik)
     dateFormat  X
     axisFormat %Ss
 
@@ -147,31 +110,31 @@ gantt
     Sleep              :a1, 0, 4s
     Harvest Crop B     :a2, 4, 9s
     Eat                :a3, 13, 5s
-    Plant Crop B       :a4, 18, 7s
+    Plant Crop B       :a4, 19, 1s
 
     section Farmer B
-    GetSeed + Plant A  :b1, 0, 10s
-    Sleep              :b2, 10, 6s
-    Plant Crop A       :b3, 16, 7s
-    Watering Prep      :b4, 23, 7s
+    PlantSlow Attempt 1 :b1, 5, 5s
+    Sleep               :b2, 10, 6s
+    PlantSlow Attempt 2 :b3, 16, 4s
 
     section Farmer C
-    Sleep              :c1, 0, 8s
-    GetWateringCan     :c2, 8, 5s
-    Water Crop C       :c3, 13, 10s
-    Idle/No Goal       :c4, 23, 7s
+    Sleep               :c1, 0, 8s
+    WaterCrop (ongoing) :c2, 13, 7s
 ```
 
-Anotasi event penting yang dapat ditulis di bawah gambar: T=00:02 (A menang lelang Crop B), T=00:06 (C menang lelang Crop C), T=00:13 (A selesai panen dan release Crop B), T=00:23 (C selesai watering dan release Crop C).
+Anotasi event penting berdasarkan log real: T=00:02 (Farmer A menang lelang Crop B), T=00:06 (Farmer C menang lelang Crop C), T=00:10 (Farmer B interupsi PlantSlow dan release Crop A), T=00:13 (Farmer A selesai panen dan release Crop B), T=00:19 (Farmer A mulai PlantSlow pada Crop B).
 
-Tabel 2. Contoh Perbandingan Stabilitas Sebelum dan Sesudah Perbaikan
+Catatan: timeline ini merepresentasikan event yang teramati pada potongan log hingga T=00:19. Aktivitas yang belum memiliki event COMPLETE pada potongan log ditandai sebagai ongoing hingga batas jendela observasi.
 
-| Skenario | Jumlah Event BID per 10 detik | Jumlah Event RELEASED per 10 detik | Jumlah Loop Goal Berulang | Jumlah Aksi Selesai (COMPLETE) | Keterangan Kondisi Log |
+Tabel 2. Ringkasan Indikator Eksekusi Sesi Log Real
+
+| Skenario | Rentang Waktu | Jumlah Event BID | Jumlah Event RELEASED | Jumlah Aksi COMPLETE | Jumlah Aksi INTERRUPTED | Keterangan Kondisi Log |
 |---|---:|---:|---:|---:|---|
-| Sebelum perbaikan validasi watering | 18 | 17 | 12 | 5 | Terjadi spam BID-RELEASED pada crop stage 1 |
-| Sesudah perbaikan validasi watering | 6 | 5 | 1 | 8 | Log stabil, seleksi goal sesuai needsWater |
+| Sesi log real multi-goal | 00:00-00:19 | 5 | 3 | 5 | 1 | Alokasi awal paralel (plant-harvest-water), ada satu interupsi valid, tanpa konflik target antar agen |
 
-Catatan: nilai pada tabel ini adalah contoh format pelaporan. Ganti dengan hasil hitung aktual dari log eksperimen Anda.
+Catatan: metrik tabel diambil dari potongan log runtime yang Anda kirim. Pesan "recursive connection detected" berasal dari GOAP graph viewer (visualisasi planner), bukan indikator utama performa koordinasi runtime.
+
+Definisi istilah pada Tabel 2: BID adalah event ketika agen mengajukan target kerja ke CropManager berdasarkan nilai utilitas; RELEASED adalah event pelepasan reservasi target agar dapat dialokasikan ulang; COMPLETE adalah event aksi yang selesai dieksekusi dengan sukses; dan INTERRUPTED adalah event aksi yang berhenti sebelum selesai, biasanya diikuti pelepasan reservasi untuk menjaga stabilitas koordinasi.
 
 ## 4. Kesimpulan
 Implementasi Goal Oriented Behavior Tree pada penelitian ini berhasil mengintegrasikan prioritas kebutuhan agen, perencanaan aksi berbasis goal, dan koordinasi sumber daya lintas agen dalam satu arsitektur operasional pada lingkungan game RPG dinamis. Hasil pengujian menunjukkan bahwa pemisahan peran antara Behavior Tree sebagai pemilih konteks dan GOAP sebagai perencana aksi mempertahankan respons adaptif terhadap perubahan state agen dan state dunia. Pada saat yang sama, mekanisme reservation dan utility auction di CropManager menurunkan konflik perebutan target, menjaga eksklusivitas pengerjaan crop, serta mencegah deadlock pada skenario resource terbatas. Penyempurnaan validasi WateringGoal berbasis status needsWater dan pengubahan log kondisi tanpa tugas menjadi NO GOAL | IDLE menunjukkan bahwa konsistensi semantik antara fungsi evaluasi, precondition aksi, dan observabilitas runtime berpengaruh langsung terhadap stabilitas sistem. Dengan demikian, pendekatan GOBT layak digunakan sebagai fondasi AI koordinatif pada game yang membutuhkan perilaku agen otonom, kolaboratif, dan dapat dievaluasi secara kuantitatif.

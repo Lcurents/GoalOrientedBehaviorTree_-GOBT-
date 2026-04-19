@@ -1187,7 +1187,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cad9b062e32590a40bfe9d7ddaf5af4d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  growthStage: 0
+  growthStage: 2
   growthTimePerStage: 10
   cropSprite: {fileID: 308973088}
   growthSprites:
